@@ -3,17 +3,17 @@
 Enrique Collin and Jason Lin
 
 ## Q-learning algorithm
+### Executing the Q-learning algorithm
 We will encode the set of possible actions and states listed on the website and then follow the algorithm using the phantom robot node: until the Q-matrix converges, we will randomly select and perform an action and then update the Q-matrix using the reward published. 
 We can test this by observing (1) how long it takes for the Q matrix to converge (2) whether the robot's behavior is as desired after the Q matrix converges (3) manually inspecting the Q matrix.
-### Executing the Q-learning algorithm
+### Determining when the Q-matrix has converged
 Determining when the Q-matrix has converged
 We will determine that the Q-matrix has converged by keeping track of the iteration when it last updated. If it has not updated for some number of iterations, perhaps 50, we will decide that it has converged. 
 We will test whether we chose too high/low a number of iterations by testing out different numbers and seeing if we need fewer/more iterations for the robot to achieve its goal using the ending Q matrix.
-### Determining when the Q-matrix has converged
+### Once the Q-matrix has converged, how to determine which actions the robot should take to maximize expected reward
 Once the Q-matrix has converged, how to determine which actions the robot should take to maximize expected reward
 We will continuously (1) determine the current state (2) determine the desired next state to maximize expected reward (3) use the action matrix entry to find the action that moves between these states. 
 We will test this largely by whether the robot is able to achieve the goal of putting each dumbbell at the desired square.
-### Once the Q-matrix has converged, how to determine which actions the robot should take to maximize expected reward
 ## Robot perception
 ### Determining the identities and locations of the three colored dumbbells
 To determine the identity we can use the /scan topic and /camera/rgb/image_raw to detect the direction of the dumbbells and the color of them. When the robot is initialized, we will record its odometry as the starting position. When the robot needs to search for a dumbbell, it will return t o this starting position and rotate until it detects the desired color.
