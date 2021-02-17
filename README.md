@@ -18,14 +18,14 @@ Enrique Collin and Jason Lin
 - We can test by observing the robot’s behavior in RViz and perhaps looking at the actual identities and positions of the dumbells sent by the `ModelStates` publisher. 
 ### Determining the identities and locations of the three numbered blocks
 - We will procure a neural network designed to detect arabic numerals in images. When the robot is initialized, we will have it use the `/scan` topic to locate the positions of the three blocks and store them in memory. In front of each of the blocks, the robot will use the neural network to process the camera feed from `/camera/rgb/image_raw` and calculate the probability of that block being 1, 2, or 3.
-- We can test by observing the robot’s behavior in RViz and perhaps looking at the actual identities and positions of the blocks sent by the ModelStates publisher. 
+- We can test by observing the robot’s behavior in RViz and perhaps looking at the actual identities and positions of the blocks sent by the `ModelStates` publisher. 
 ## Robot manipulation & movement
 ### Picking up and putting down the dumbbells with the OpenMANIPULATOR arm
 - Once navigating to the location of the dumbbell, we will make sure we are directly facing it at a set distance (this standardizes the needed grab command). Then, we will use the MoveIt package (which can detect collisions) to grab the dumbbell using a pre-determined through trial/error grab setting. 
 - We can test by observing the robot’s behavior in RViz and editing behavior based on whether it is grabbing successfully or not. 
 ### Navigating to the appropriate locations to pick up and put down the dumbbells
 - We can navigate to the right location using the initial position of the robot and the `/scan` topic; we will use proportional control. If needed, we will use the fact that dumbbells have color to tell which direction has the dumbbells and which has the blocks.
-- We can test by observing the robot’s behavior in RViz and perhaps looking at the actual identities and positions of the blocks sent by the ModelStates publisher. 
+- We can test by observing the robot’s behavior in RViz and perhaps looking at the actual identities and positions of the blocks sent by the `ModelStates` publisher. 
 ## Time
 - Enrique: Qlearn 
 - Jason: Robot perception, arm manipulation
