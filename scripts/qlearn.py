@@ -172,12 +172,14 @@ class QLearn():
             next_max_Q = max(self.qmat[next_state])
             self.qmat[curr_state][action] = curr_q + alpha * (reward + gamma * next_max_Q - curr_q)
             
-            tolerance = 0.01
+            tolerance = 0.001
             if abs(self.qmat[curr_state][action] - curr_q) > tolerance:
                 # Check that an update occurred
                 last_update_iter = curr_iter
+                self.qmat_pub(self.qmat)
             curr_state = next_state
             curr_iter += 1
+        print("Done qlearning; matrix converged")
             
             
     def reward_received(self, data):
