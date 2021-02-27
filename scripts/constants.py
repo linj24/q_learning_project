@@ -5,6 +5,10 @@ ACTION_STATE_TOPIC = "action_state"
 ROBOT_ACTION_TOPIC = "q_learning/RobotMoveDBToBlock"
 QUEUE_SIZE = 10
 
+CENTER_RADIUS = 0.5
+
+
+
 ACTION_STATE_IDLE = "action_state_idle"
 ACTION_STATE_SCOUT = "action_state_scout"
 ACTION_STATE_MOVE_CENTER = "action_state_move_center"
@@ -16,24 +20,30 @@ ACTION_STATE_MOVE_BLOCK = "action_state_move_block"
 ACTION_STATE_RELEASE = "action_state_release"
 
 
+ARM_STATE_IDLE = "arm_state_idle"
+ARM_STATE_GRABBING = "arm_state_grabbing"
+ARM_STATE_RELEASING = "arm_state_releasing"
+ARM_STATE_HOLDING = "arm_state_holding"
+
+
 MOVEMENT_STATE_IDLE = "movement_state_idle"
 MOVEMENT_STATE_GO_TO_POSITION = "movement_state_go_to_position"
 MOVEMENT_STATE_FIND_OBJECT = "movement_state_find_object"
 MOVEMENT_STATE_FOLLOW_OBJECT = "movement_state_track_object"
 
 
-VISION_STATE_IDLE = 0
-VISION_STATE_COLOR_SEARCH = 1
-VISION_STATE_NUMBER_SEARCH = 2
+VISION_STATE_IDLE = "vision_state_idle"
+VISION_STATE_COLOR_SEARCH = "vision_state_color_search"
+VISION_STATE_NUMBER_SEARCH = "vision_state_number_search"
 
 COLOR_NONE = "color_none"
 COLOR_RED = "color_red"
 COLOR_GREEN = "color_green"
 COLOR_BLUE = "color_blue"
-NUMBER_NONE = "number_none"
-NUMBER_ONE = "number_one"
-NUMBER_TWO = "number_two"
-NUMBER_THREE = "number_three"
+NUMBER_NONE = 0
+NUMBER_ONE = 1
+NUMBER_TWO = 2
+NUMBER_THREE = 3
 
 
 CMD_VEL_TOPIC = "cmd_vel"
@@ -52,14 +62,17 @@ MVMT_THRESH_ANG = 0.6
 KP_LIN = 0.3
 # Proportional coefficient for angular velocity
 KP_ANG = 0.01
-# Angular velocity for turning corners
-TURN_VEL = 200
+# Angular velocity for searching for objects
+SEARCH_TURN_VEL = 30
 # Safe distance from object
-THRESHOLD = 0.7
+SAFE_DISTANCE = 0.7
 # Greatest distance to start following the object at
 DETECTION_LIMIT = 3.5
+FRONT_ANGLE_RANGE = 60
 
-UPDATE_RATE = 1
+IMG_RAW_UPDATE_RATE = 1
+
+IMG_CEN_PIXEL_THRESHOLD = 30
 
 LOWER_RED_1 = np.array([0, 50, 50])
 UPPER_RED_1 = np.array([15, 255, 255])

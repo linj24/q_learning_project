@@ -36,6 +36,18 @@ def find_distance_offset(bot_pose, target_pose):
         target_pose.position.y - bot_pose.position.y)
 
 
+def find_distance(bot_pose, target_pose):
+    return (
+        (target_pose.position.x - bot_pose.position.x) ** 2 +
+        (target_pose.position.y - bot_pose.position.y) ** 2) ** 0.5
+
+
+def wrap_bounds(center_value, maximum_value, total_range):
+    lower_bound = (center_value - (total_range / 2)) % maximum_value
+    upper_bound = (center_value + (total_range / 2)) % maximum_value
+    return (lower_bound, upper_bound)
+
+
 class ImgCentroidMsg(object):
     def __init__(self, color=None, centroid=(None, None)):
         self.color = color

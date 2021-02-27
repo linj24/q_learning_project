@@ -3,22 +3,21 @@
 import rospy, cv2, cv_bridge
 import numpy as np
 from sensor_msgs.msg import Image
-from utils import ImgCentroidMsg
+from utils import ImgCentroidMsg, wrap_bounds
 import constants as C
 
 
 def mask_hue(img, hue):
-    hue_lower_bound = hue - (C.HUE_RANGE / 2)
-    hue_upper_bound = hue + (C.HUE_RANGE / 2)
+    hue_lower_bound, hue_upper_bound = wrap_bounds(hue, 180, C.HUE_RANGE)
 
-    if hue_lower_bound < 0 or hue_upper_bound > 180:
+    if hue_lower_bound > hue_upper_bound:
         lower_bound_1 = np.array([0, C.MIN_SAT, C.MIN_VAL])
         upper_bound_1 = np.array([
-            hue_upper_bound % 180, C.MAX_SAT, C.MAX_VAL])
+            hue_upper_bound, C.MAX_SAT, C.MAX_VAL])
         mask1 = cv2.inRange(img, lower_bound_1, upper_bound_1)
 
         lower_bound_2 = np.array([
-            hue_lower_bound % 180, C.MIN_SAT, C.MIN_VAL])
+            hue_lower_bound, C.MIN_SAT, C.MIN_VAL])
         upper_bound_2 = np.array([180, C.MAX_SAT, C.MAX_VAL])
         mask2 = cv2.inRange(img, lower_bound_2, upper_bound_2)
 
@@ -33,7 +32,7 @@ def mask_hue(img, hue):
 
 def calc_centroid(img, mask):
     # Code from class meeting 03
-    h, w, d = img.shape
+    h, w, _ = img.shape
     search_top = int(3*h/4)
     search_bot = int(3*h/4 + 20)
     mask[0:search_top, 0:w] = 0
@@ -44,9 +43,9 @@ def calc_centroid(img, mask):
     if M['m00'] > 0:
         cx = int(M['m10']/M['m00'])
         cy = int(M['m01']/M['m00'])
-        return (cx, cy)
+        return (cx - (h//2), cy - (w//2))
 
-    return (None, None)
+    return None
 
 
 class VisionController(object):
@@ -78,10 +77,17 @@ class VisionController(object):
         rospy.Subscriber(C.IMG_RAW_TOPIC, Image, self.process_image)
 
 
-    def set_state(self, new_state, new_search_state):
+    def set_state(self, new_state):
         self.state = new_state
-        self.search_state = new_search_state
 
+
+    def set_color_search_target(self, color_search_target):
+        self.color_search_target = color_search_target
+
+
+    def set_number_search_target(self, number_search_target):
+        self.number_search_target = number_search_target
+        
 
     def color_state_to_hue(self):
         if self.color_search_target == C.COLOR_RED:
@@ -95,7 +101,7 @@ class VisionController(object):
 
 
     def process_image(self, img):
-        self.img_raw_counter = (self.img_raw_counter + 1) % C.UPDATE_RATE
+        self.img_raw_counter = (self.img_raw_counter + 1) % C.IMG_RAW_UPDATE_RATE
 
         if self.img_raw_counter == 0:
             if self.state == C.VISION_STATE_COLOR_SEARCH:
