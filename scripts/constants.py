@@ -21,9 +21,10 @@ ACTION_STATE_RELEASE = "action_state_release"
 
 
 ARM_STATE_IDLE = "arm_state_idle"
+ARM_STATE_DOWN = "arm_state_down"
+ARM_STATE_UP = "arm_state_up"
 ARM_STATE_GRABBING = "arm_state_grabbing"
 ARM_STATE_RELEASING = "arm_state_releasing"
-ARM_STATE_HOLDING = "arm_state_holding"
 
 
 MOVEMENT_STATE_IDLE = "movement_state_idle"
@@ -52,6 +53,12 @@ ODOM_TOPIC = "odom"
 IMG_RAW_TOPIC = "camera/rgb/image_raw"
 IMG_CEN_TOPIC = "image_centroid"
 QUEUE_SIZE = 10
+
+
+ARM_JOINT_GOAL_DOWN = [0, 0, 0, 0]
+ARM_JOINT_GOAL_UP = [1, 1, 1, 1]
+GRIPPER_JOINT_GOAL_OPEN = [0.5, 0.5]
+GRIPPER_JOINT_GOAL_CLOSED = [0.9, 0.9]
 
 
 MVMT_THRESH_LIN = 0.2

@@ -18,3 +18,33 @@ class ArmController(object):
 
     def set_state(self, state):
         self.current_state = state
+        if state == C.ARM_STATE_UP:
+            self.raise_arm()
+        elif state == C.ARM_STATE_DOWN:
+            self.lower_arm()
+        elif state == C.ARM_STATE_GRABBING:
+            self.close_gripper()
+            self.raise_arm()
+        elif state == C.ARM_STATE_RELEASING:
+            self.lower_arm()
+            self.open_gripper()
+
+
+    def raise_arm(self):
+        self.move_group_arm.go(C.ARM_JOINT_GOAL_UP, wait=True)
+        self.move_group_arm.stop()
+
+
+    def lower_arm(self):
+        self.move_group_arm.go(C.ARM_JOINT_GOAL_DOWN, wait=True)
+        self.move_group_arm.stop()
+
+
+    def close_gripper(self):
+        self.move_group_gripper.go(C.GRIPPER_JOINT_GOAL_CLOSED, wait=True)
+        self.move_group_gripper.stop()
+
+
+    def open_gripper(self):
+        self.move_group_gripper.go(C.GRIPPER_JOINT_GOAL_OPEN, wait=True)
+        self.move_group_gripper.stop()

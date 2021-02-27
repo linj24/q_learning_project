@@ -144,12 +144,12 @@ class ActionController(object):
             self.vision_controller.set_state(C.VISION_STATE_IDLE)
 
         elif new_state == C.ACTION_STATE_LOCATE_DUMBBELL:
-            self.arm_controller.set_state(C.ARM_STATE_IDLE)
+            self.arm_controller.set_state(C.ARM_STATE_DOWN)
             self.movement_controller.set_state(C.MOVEMENT_STATE_FIND_OBJECT)
             self.vision_controller.set_state(C.VISION_STATE_COLOR_SEARCH)
 
         elif new_state == C.ACTION_STATE_MOVE_DUMBBELL:
-            self.arm_controller.set_state(C.ARM_STATE_IDLE)
+            self.arm_controller.set_state(C.ARM_STATE_DOWN)
             self.movement_controller.set_state(C.MOVEMENT_STATE_FOLLOW_OBJECT)
             self.vision_controller.set_state(C.VISION_STATE_NUMBER_SEARCH)
 
@@ -159,12 +159,12 @@ class ActionController(object):
             self.vision_controller.set_state(C.VISION_STATE_IDLE)
 
         elif new_state == C.ACTION_STATE_LOCATE_BLOCK:
-            self.arm_controller.set_state(C.ARM_STATE_IDLE)
+            self.arm_controller.set_state(C.ARM_STATE_UP)
             self.movement_controller.set_state(C.MOVEMENT_STATE_FIND_OBJECT)
             self.vision_controller.set_state(C.VISION_STATE_NUMBER_SEARCH)
 
         elif new_state == C.ACTION_STATE_MOVE_BLOCK:
-            self.arm_controller.set_state(C.ARM_STATE_IDLE)
+            self.arm_controller.set_state(C.ARM_STATE_UP)
             self.movement_controller.set_state(C.MOVEMENT_STATE_FOLLOW_OBJECT)
             self.vision_controller.set_state(C.VISION_STATE_NUMBER_SEARCH)
 
