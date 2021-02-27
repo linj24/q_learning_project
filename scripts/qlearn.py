@@ -42,7 +42,7 @@ class QLearn():
         self.action_pub = rospy.Publisher("/q_learning/robot_action", RobotMoveDBToBlock, queue_size=10)
         # Setup subcriber for rewards
         rospy.Subscriber("/q_learning/QLearningReward", QLearningReward, self.reward_received)
-        self.qmat = np.zeros((NUM_STATES, NUM_ACTIONS))
+        self.qmat = np.zeros((self.NUM_STATES, self.NUM_ACTIONS))
         self.init_action_mat()
         self.reward = None
         self.do_qlearn()
@@ -99,7 +99,6 @@ class QLearn():
             return -1
         diff = [state2_ls[i] - state1_ls[i] for i in range(3)]
         changed_DB = -1
-        blocks_in_use = set()
         for (i, delta) in enumerate(diff):
             if delta != 0:
                 # There is no action to change state of multiple dumbells  
