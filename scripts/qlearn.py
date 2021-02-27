@@ -115,7 +115,7 @@ class QLearn():
         # Moving a DB to a block that already has one DB
         if DB_i != self.ORIGIN or state2_ls.count(DB_f) > 1:
             return -1
-        return self.get_action_number(DB_changed, DB_f)
+        return self.get_action_number(changed_DB, DB_f)
 
 
     def init_action_mat(self):
