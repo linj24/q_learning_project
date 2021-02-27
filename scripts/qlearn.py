@@ -176,7 +176,7 @@ class QLearn():
             if abs(self.qmat[curr_state][action] - curr_q) > tolerance:
                 # Check that an update occurred
                 last_update_iter = curr_iter
-                self.qmat_pub(self.qmat)
+                self.qmat_pub.publish(self.qmat)
             curr_state = next_state
             curr_iter += 1
         print("Done qlearning; matrix converged")
