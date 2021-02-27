@@ -4,39 +4,34 @@ import rospy
 
 from gazebo_msgs.msg import ModelState, ModelStates
 from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3
-from q_learning_project.msg import RobotMoveDBToBlock
 from std_msgs.msg import Header
+from q_learning_project.msg import RobotMoveDBToBlock
 from q_learning_project.msg import QLearningReward
 from q_learning_project.msg import QMatrixRow
 from q_learning_project.msg import QMatrix
 
-import time
-
-from tf.transformations import quaternion_from_euler, euler_from_quaternion
-
 import numpy as np
-
 import random
 
 class QLearn():
-        # Action is of the form (dumbell to move, block to move to)
-        # There are 3 dumbells and 3 blocks so 9 actons
-        NUM_ACTIONS = 9 
-        # States are of the form (red DB location, green DB location, blue DB location)
-        # There are 4 locations (origin, block1, block2, block3) 
-        # So, 4^3 = 64 states
-        NUM_STATES = 64 
+    # Action is of the form (dumbell to move, block to move to)
+    # There are 3 dumbells and 3 blocks so 9 actons
+    NUM_ACTIONS = 9 
+    # States are of the form (red DB location, green DB location, blue DB location)
+    # There are 4 locations (origin, block1, block2, block3) 
+    # So, 4^3 = 64 states
+    NUM_STATES = 64 
 
-        # Values representing states
-        ORIGIN = 0
-        BLOCK1 = 1
-        BLOCK2 = 2
-        BLOCK3 = 3
+    # Values representing states
+    ORIGIN = 0
+    BLOCK1 = 1
+    BLOCK2 = 2
+    BLOCK3 = 3
 
-        # Values representing colors
-        RED = 0
-        GREEN = 1
-        BLUE = 2
+    # Values representing colors
+    RED = 0
+    GREEN = 1
+    BLUE = 2
 
     def __init__(self):
         # initialize this node
@@ -49,6 +44,7 @@ class QLearn():
         rospy.Subscriber("/q_learning/QLearningReward", QLearningReward, self.reward_received)
         self.qmat = np.zeros((NUM_STATES, NUM_ACTIONS))
         self.init_action_mat()
+        self.reward = None
         self.do_qlearn()
     
     
@@ -65,6 +61,23 @@ class QLearn():
         action = DB_color * 3
         action += block_number - 1
         return action
+    
+    def action_num_to_obj(self, action):
+        block_num = action % 3
+        DB_color = (action - block_num) // 3
+        block_num += 1
+        if DB_color == self.BLUE:
+            color = "blue"
+        elif DB_color == self.GREEN:
+            color = "green"
+        elif DB_color == self.RED:
+            color = "red"
+        else:
+            raise RuntimeError("action_num_to_obj found invalid DB color!")
+        action_obj = RobotMoveDBToBlock(color, block_num)
+        return action_obj
+        
+
 
     def state_num_to_ls(self, state_num):
         """
@@ -117,35 +130,61 @@ class QLearn():
 
     def get_rand_action(self, start_state):
         """
-        Returns a random action uniformly sampled from the valid actions
+        Returns a (rand_action, final_state) uniformly sampled from the valid actions
         starting at start_state
         If there are no valid actions, return -1
         """
+        # actions stores a list of actions indexed by end state
         actions = self.action_mat[start_state]
-        valid_actions = [action in actions if action != -1]
+        valid_actions = [action for action in actions if action != -1]
         if not valid_actions:
-            return -1
-        return random.choice(valid_actions)
+            return (-1, -1)
+        final_state = random.randint(len(valid_actions))
+        return (valid_actions[final_state], final_state)
         
 
     def do_qlearn(self):
         last_update_iter = curr_iter = 0
-        curr_state = []
+        # state 0 is everything at origin
+        curr_state = 0
         converge_threshold = 50
+        alpha = 1
+        # Consider fine-tuning gamma choice
+        gamma = 1
         # Converge after we have not updated qmat for converge_threshold iterations
         while curr_iter - last_update_iter < converge_threshold:
-            action = self.get_rand_action()
-# You’ll want to use some delays when you send robot action messages to the phantom robot to give it enough time in between actions. I’d recommend using rospy.sleep() every time you send an action to the phantom robot.
+            (action, next_state) = self.get_rand_action(curr_state)
+            if action == -1:
+                # No valid actions left; all DBs at a block and this iteration is over
+                print("No valid actions left. Sleeping for a second; world should reset")
+                rospy.sleep(1)
+                curr_state = 0
+                continue
+
+            action_obj = self.action_num_to_obj(action)
+            self.action_pub.publish(action_obj)
+            # Delay after sending robot action to phantom to give it time between actions
+            # and wait for reward
+            while not self.reward:
+                rospy.sleep(1)
+            reward = self.reward.reward
+            self.reward = None
+            curr_q = self.qmat[curr_state][action]
+            next_max_Q = max(self.qmat[next_state])
+            self.qmat[curr_state][action] = curr_q + alpha * (reward + gamma * next_max_Q - curr_q)
+            
+            tolerance = 0.01
+            if abs(self.qmat[curr_state][action] - curr_q) > tolerance:
+                # Check that an update occurred
+                last_update_iter = curr_iter
+            curr_state = next_state
+            curr_iter += 1
+            
             
     def reward_received(self, data):
-        pass
+        self.reward = data
 
 
-   #std_msgs/Header header
-    #     uint32 seq
-     #    time stamp
-      #   string frame_id
-    #int16 reward
-    #int16 iteration_num
+
 
         
