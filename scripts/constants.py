@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 import numpy as np
 
-ACTION_STATE_TOPIC = "action_state"
+CMD_VEL_TOPIC = "cmd_vel"
+SCAN_TOPIC = "scan"
+ODOM_TOPIC = "odom"
+IMG_RAW_TOPIC = "camera/rgb/image_raw"
+IMG_CEN_TOPIC = "image_centroid"
 ROBOT_ACTION_TOPIC = "q_learning/RobotMoveDBToBlock"
 QUEUE_SIZE = 10
 
 CENTER_RADIUS = 0.5
-
-
 
 ACTION_STATE_IDLE = "action_state_idle"
 ACTION_STATE_SCOUT = "action_state_scout"
@@ -37,22 +39,15 @@ VISION_STATE_IDLE = "vision_state_idle"
 VISION_STATE_COLOR_SEARCH = "vision_state_color_search"
 VISION_STATE_NUMBER_SEARCH = "vision_state_number_search"
 
-COLOR_NONE = "color_none"
-COLOR_RED = "color_red"
-COLOR_GREEN = "color_green"
-COLOR_BLUE = "color_blue"
-NUMBER_NONE = 0
-NUMBER_ONE = 1
-NUMBER_TWO = 2
-NUMBER_THREE = 3
 
-
-CMD_VEL_TOPIC = "cmd_vel"
-SCAN_TOPIC = "scan"
-ODOM_TOPIC = "odom"
-IMG_RAW_TOPIC = "camera/rgb/image_raw"
-IMG_CEN_TOPIC = "image_centroid"
-QUEUE_SIZE = 10
+COLOR_NONE = "none"
+COLOR_RED = "red"
+COLOR_GREEN = "green"
+COLOR_BLUE = "blue"
+NUMBER_NONE = "0"
+NUMBER_ONE = "1"
+NUMBER_TWO = "2"
+NUMBER_THREE = "3"
 
 
 ARM_JOINT_GOAL_DOWN = [0, 0, 0, 0]
@@ -78,7 +73,6 @@ DETECTION_LIMIT = 3.5
 FRONT_ANGLE_RANGE = 60
 
 IMG_RAW_UPDATE_RATE = 1
-
 IMG_CEN_PIXEL_THRESHOLD = 30
 
 LOWER_RED_1 = np.array([0, 50, 50])

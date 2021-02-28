@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import rospy, cv2, cv_bridge
+import rospy, cv2, cv_bridge, keras_ocr
 import numpy as np
 from sensor_msgs.msg import Image
 from utils import ImgCentroidMsg, wrap_bounds
@@ -30,7 +30,7 @@ def mask_hue(img, hue):
         return mask
 
 
-def calc_centroid(img, mask):
+def calc_color_centroid(img, mask):
     # Code from class meeting 03
     h, w, _ = img.shape
     search_top = int(3*h/4)
@@ -48,12 +48,23 @@ def calc_centroid(img, mask):
     return None
 
 
+def calc_box_center(box):
+    box_center_x = 0
+    box_center_y = 0
+    for box_corner_y, box_corner_x in box:
+        box_center_x = box_center_x + box_corner_x
+        box_center_y = box_center_y + box_corner_y
+    box_center = (box_center_x / 4, box_center_y / 4)
+
+    return box_center
+
+
 class VisionController(object):
     
     def __init__(self):
         rospy.init_node('q_bot_vision')
 
-        self.pubs = self.initialize_publishers()
+        self.publishers = self.initialize_publishers()
         self.initialize_subscribers()
         
         self.state = C.VISION_STATE_IDLE
@@ -61,6 +72,7 @@ class VisionController(object):
         self.number_search_target = C.NUMBER_NONE
         self.img_raw_counter = 0
         self.bridge = cv_bridge.CvBridge()
+        self.pipeline = keras_ocr.pipeline.Pipeline()
 
         
     def initialize_publishers(self):
@@ -104,24 +116,32 @@ class VisionController(object):
         self.img_raw_counter = (self.img_raw_counter + 1) % C.IMG_RAW_UPDATE_RATE
 
         if self.img_raw_counter == 0:
+            csv_img = self.bridge.imgmsg_to_cv2(img, desired_encoding='bgr8')
             if self.state == C.VISION_STATE_COLOR_SEARCH:
-
-                hsv_img = self.image_to_ndarray(img)
+                hsv_img = cv2.cvtColor(csv_img, cv2.COLOR_BGR2HSV)
                 hue = self.color_state_to_hue()
 
                 mask = mask_hue(hsv_img, hue)
-                centroid = calc_centroid(hsv_img, mask)
+                centroid = calc_color_centroid(hsv_img, mask)
                 
-                self.pubs[C.IMG_CEN_TOPIC].publish(ImgCentroidMsg(hue, centroid))
+                self.publishers[C.IMG_CEN_TOPIC].publish(ImgCenMsg(
+                    self.current_state,
+                    self.color_search_target,
+                    centroid))
 
             elif self.state == C.VISION_STATE_NUMBER_SEARCH:
-                pass
+                prediction_group = self.pipeline.recognize([csv_img])[0]
 
+                box_center = None
+                for word, box in prediction_group:
+                    if word == self.number_search_target:
+                        box_center = calc_box_center(box)
 
-    def image_to_ndarray(self, img):
-        image = self.bridge.imgmsg_to_cv2(img, desired_encoding='bgr8')
-        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        return hsv
+                self.publishers[C.IMG_CEN_TOPIC].publish(ImgCenMsg(
+                    self.current_state,
+                    self.number_search_target,
+                    box_center)
+                        
 
 
     def run(self):

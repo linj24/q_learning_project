@@ -7,7 +7,7 @@ import moveit_msgs.msg
 from geometry_msgs.msg import Pose, Twist
 from sensor_msgs.msg import LaserScan
 import constants as C
-from utils import find_angle_offset, find_distance, wrap_bounds, ImgCentroidMsg
+from utils import find_angle_offset, find_distance, wrap_bounds, ImgCenMsg
 
 
 def calculate_velocity_odom(bot_pose, target_pose):
@@ -50,10 +50,10 @@ def calculate_velocity_scan(scan_data, target_angle):
     return bot_vel
 
 
-def calculate_velocity_img_cen(centroid):
+def calculate_velocity_img_cen(center):
     bot_vel = Twist()
-    if centroid.centroid is not None:
-        bot_vel.angular.z = C.KP_ANG * centroid.centroid[1]
+    if center.center is not None:
+        bot_vel.angular.z = C.KP_ANG * center.center[1]
     else:
         bot_vel.angular.z = C.KP_ANG * C.SEARCH_TURN_VEL
     return bot_vel
@@ -83,7 +83,7 @@ class MovementController(object):
     def initialize_subscribers(self):
         rospy.Subscriber(C.ODOM_TOPIC, Pose, self.process_odom)
         rospy.Subscriber(C.SCAN_TOPIC, LaserScan, self.process_scan)
-        rospy.Subscriber(C.IMG_CEN_TOPIC, ImgCentroidMsg, self.process_img_cen)
+        rospy.Subscriber(C.IMG_CEN_TOPIC, ImgCenMsg, self.process_img_cen)
 
 
     def set_starting_pose(self, pose):

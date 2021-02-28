@@ -9,7 +9,7 @@ from sensor_msgs.msg import LaserScan
 from arm_manipulation import ArmController
 from movement import MovementController
 from vision import VisionController
-from utils import ImgCentroidMsg, find_distance
+from utils import ImgCenMsg, find_distance
 from q_learning_project.msg import RobotMoveDBToBlock
 import constants as C
 
@@ -40,7 +40,7 @@ class ActionController(object):
     def initialize_subscribers(self):
         rospy.Subscriber(C.ODOM_TOPIC, Pose, self.process_odom)
         rospy.Subscriber(C.SCAN_TOPIC, LaserScan, self.process_scan)
-        rospy.Subscriber(C.IMG_CEN_TOPIC, ImgCentroidMsg, self.process_img_cen)
+        rospy.Subscriber(C.IMG_CEN_TOPIC, ImgCenMsg, self.process_img_cen)
         rospy.Subscriber(C.ROBOT_ACTION_TOPIC, RobotMoveDBToBlock, self.process_action)
 
 

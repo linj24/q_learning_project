@@ -48,9 +48,10 @@ def wrap_bounds(center_value, maximum_value, total_range):
     return (lower_bound, upper_bound)
 
 
-class ImgCentroidMsg(object):
-    def __init__(self, color=None, centroid=(None, None)):
-        self.color = color
-        self.centroid = centroid
+class ImgCenMsg(object):
+    def __init__(self, cen_type=None, target=None, center=(None, None)):
+        self.cen_type = cen_type
+        self.target = target
+        self.center = center
 
 
