@@ -41,7 +41,9 @@ class QLearn():
         self.qmat_pub = rospy.Publisher("/q_learning/q_matrix", QMatrix, queue_size=10)
         self.action_pub = rospy.Publisher("/q_learning/robot_action", RobotMoveDBToBlock, queue_size=10)
         # Setup subcriber for rewards
-        rospy.Subscriber("/q_learning/QLearningReward", QLearningReward, self.reward_received)
+        rospy.Subscriber("/q_learning/reward", QLearningReward, self.reward_received)
+        # Sleep for one second to setup subscriber and publishers
+        rospy.sleep(1.0)
         self.qmat = np.zeros((self.NUM_STATES, self.NUM_ACTIONS))
         self.init_action_mat()
         self.reward = None
@@ -62,6 +64,7 @@ class QLearn():
         action += block_number - 1
         return action
     
+
     def action_num_to_obj(self, action):
         block_num = action % 3
         DB_color = (action - block_num) // 3
@@ -77,7 +80,6 @@ class QLearn():
         action_obj = RobotMoveDBToBlock(color, block_num)
         return action_obj
         
-
 
     def state_num_to_ls(self, state_num):
         """
@@ -122,10 +124,11 @@ class QLearn():
         # action_mat[curr_state][desired_next_state] = action to get to desired state
         # -1 if transition is impossible
         NUM_STATES = self.NUM_STATES
-        self.action_mat = np.zeros((NUM_STATES, NUM_STATES))
+        self.action_mat = np.zeros((NUM_STATES, NUM_STATES), dtype=int)
         for s1 in range(NUM_STATES):
             for s2 in range(NUM_STATES):
                 self.action_mat[s1][s2] = self.get_action_for_state_change(s1, s2)
+
 
     def get_rand_action(self, start_state):
         """
@@ -136,55 +139,84 @@ class QLearn():
         # actions stores a list of actions indexed by end state
         actions = self.action_mat[start_state]
         valid_actions = [action for action in actions if action != -1]
+        print("start state followed by valid actions: ")
+        print(start_state, valid_actions)
         if not valid_actions:
             return (-1, -1)
-        final_state = random.randint(len(valid_actions))
-        return (valid_actions[final_state], final_state)
+        action = random.choice(valid_actions)
+        # get index in actions of the action
+        final_state = np.where(actions == action)[0][0]
+        return (action, final_state)
         
 
     def do_qlearn(self):
         last_update_iter = curr_iter = 0
         # state 0 is everything at origin
         curr_state = 0
-        converge_threshold = 50
+        converge_threshold = 200
         alpha = 1
         # Consider fine-tuning gamma choice
         gamma = 1
         # Converge after we have not updated qmat for converge_threshold iterations
         while curr_iter - last_update_iter < converge_threshold:
+            print('------------------------------------------')
+            print("curr iteration: ", curr_iter)
             (action, next_state) = self.get_rand_action(curr_state)
             if action == -1:
                 # No valid actions left; all DBs at a block and this iteration is over
-                print("No valid actions left. Sleeping for a second; world should reset")
+               # print("No valid actions left. Sleeping for a second; world should reset")
                 rospy.sleep(1)
                 curr_state = 0
                 continue
 
             action_obj = self.action_num_to_obj(action)
+            print("Publishing action num ", action, "with obj: ", action_obj)
             self.action_pub.publish(action_obj)
-            # Delay after sending robot action to phantom to give it time between actions
-            # and wait for reward
+            # Sleep to let action process
+            rospy.sleep(1.0)
+            # Sleep further for reward if needed
             while not self.reward:
                 rospy.sleep(1)
             reward = self.reward.reward
             self.reward = None
-            curr_q = self.qmat[curr_state][action]
-            next_max_Q = max(self.qmat[next_state])
-            self.qmat[curr_state][action] = curr_q + alpha * (reward + gamma * next_max_Q - curr_q)
-            
-            tolerance = 0.001
-            if abs(self.qmat[curr_state][action] - curr_q) > tolerance:
-                # Check that an update occurred
+            last_q = self.qmat[curr_state][action]
+            next_max_Q = np.max(self.qmat[next_state])
+            print(last_q, alpha, reward, gamma, next_max_Q)
+            self.qmat[curr_state][action] = last_q + alpha * (reward + gamma * next_max_Q - last_q)
+            tolerance = 0.01
+            print(f"Updated state {curr_state} action {action}")
+            print(f"Old qmat value {last_q} new value {self.qmat[curr_state][action]}")
+            if abs(self.qmat[curr_state][action] - last_q) > tolerance:
+                print("QMat update did occur!")
+                self.print_qmat()
                 last_update_iter = curr_iter
-                self.qmat_pub.publish(self.qmat)
+                qmat_to_pub = QMatrix()
+                qmat_to_pub.header = Header(stamp=rospy.Time.now())
+                qmat_to_pub.q_matrix = self.qmat
+                self.qmat_pub.publish(qmat_to_pub)
+                print("Published qmat!")
+                print(f"curr_iter: {curr_iter}, state: {curr_state}, action: {action}, reward: {reward}")
+           # else:
+           #     print("QMat update did not occur")
+            print(f"Changing from state {curr_state} to {next_state}")
             curr_state = next_state
             curr_iter += 1
         print("Done qlearning; matrix converged")
+
             
             
     def reward_received(self, data):
+        print("Received reward!!!!======= ")
+        print(data)
         self.reward = data
+    
+    def print_qmat(self):
+        for row in self.qmat:
+            print(row)
 
+
+if __name__ == "__main__":
+    learner = QLearn()
 
 
 
