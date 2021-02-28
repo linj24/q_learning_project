@@ -3,7 +3,8 @@
 import rospy, cv2, cv_bridge, keras_ocr
 import numpy as np
 from sensor_msgs.msg import Image
-from utils import ImgCentroidMsg, wrap_bounds
+from utils import wrap_bounds
+from q_learning_project.msg import ImgCen
 import constants as C
 
 
@@ -62,14 +63,13 @@ def calc_box_center(box):
 class VisionController(object):
     
     def __init__(self):
-        rospy.init_node('q_bot_vision')
+        #rospy.init_node('q_bot_vision')
 
         self.publishers = self.initialize_publishers()
         self.initialize_subscribers()
         
-        self.state = C.VISION_STATE_IDLE
-        self.color_search_target = C.COLOR_NONE
-        self.number_search_target = C.NUMBER_NONE
+        self.current_state = C.VISION_STATE_IDLE
+        self.search_target = C.TARGET_NONE
         self.img_raw_counter = 0
         self.bridge = cv_bridge.CvBridge()
         self.pipeline = keras_ocr.pipeline.Pipeline()
@@ -79,7 +79,7 @@ class VisionController(object):
         publishers = {}
 
         publishers[C.IMG_CEN_TOPIC] = rospy.Publisher(
-            C.IMG_CEN_TOPIC, ImgCentroidMsg, queue_size=C.QUEUE_SIZE
+            C.IMG_CEN_TOPIC, ImgCen, queue_size=C.QUEUE_SIZE
         )
 
         return publishers
@@ -90,59 +90,64 @@ class VisionController(object):
 
 
     def set_state(self, new_state):
-        self.state = new_state
+        self.current_state = new_state
 
 
-    def set_color_search_target(self, color_search_target):
-        self.color_search_target = color_search_target
-
-
-    def set_number_search_target(self, number_search_target):
-        self.number_search_target = number_search_target
+    def set_search_target(self, search_target):
+        self.search_target = search_target
         
 
     def color_state_to_hue(self):
-        if self.color_search_target == C.COLOR_RED:
+        if self.search_target == C.COLOR_RED:
             return C.RED_HUE
-        elif self.color_search_target == C.COLOR_GREEN:
+        elif self.search_target == C.COLOR_GREEN:
             return C.GREEN_HUE
-        elif self.color_search_target == C.COLOR_BLUE:
+        elif self.search_target == C.COLOR_BLUE:
             return C.BLUE_HUE
         else:
             return
+
+
+    def create_ImgCen_msg(self, csv_img):
+        img_cen_msg = ImgCen()
+        img_cen_msg.vision_state = self.current_state
+        center = None
+
+        if self.current_state == C.VISION_STATE_COLOR_SEARCH:
+            hsv_img = cv2.cvtColor(csv_img, cv2.COLOR_BGR2HSV)
+            hue = self.color_state_to_hue()
+
+            mask = mask_hue(hsv_img, hue)
+            center = calc_color_centroid(hsv_img, mask)
+
+        elif self.current_state == C.VISION_STATE_NUMBER_SEARCH:
+            prediction_group = self.pipeline.recognize([csv_img])[0]
+
+            for word, box in prediction_group:
+                if word == self.number_search_target:
+                    box_center = calc_box_center(box)
+        
+        if center is None:
+            img_cen_msg.target = C.TARGET_NONE
+            img_cen_msg.center_x = 0.0
+            img_cen_msg.center_y = 0.0
+        else:
+            img_cen_msg.target = self.search_target
+            img_cen_msg.center_x = center[0]
+            img_cen_msg.center_y = center[1]
+        
+        return img_cen_msg
 
 
     def process_image(self, img):
         self.img_raw_counter = (self.img_raw_counter + 1) % C.IMG_RAW_UPDATE_RATE
 
         if self.img_raw_counter == 0:
-            csv_img = self.bridge.imgmsg_to_cv2(img, desired_encoding='bgr8')
-            if self.state == C.VISION_STATE_COLOR_SEARCH:
-                hsv_img = cv2.cvtColor(csv_img, cv2.COLOR_BGR2HSV)
-                hue = self.color_state_to_hue()
-
-                mask = mask_hue(hsv_img, hue)
-                centroid = calc_color_centroid(hsv_img, mask)
-                
-                self.publishers[C.IMG_CEN_TOPIC].publish(ImgCenMsg(
-                    self.current_state,
-                    self.color_search_target,
-                    centroid))
-
-            elif self.state == C.VISION_STATE_NUMBER_SEARCH:
-                prediction_group = self.pipeline.recognize([csv_img])[0]
-
-                box_center = None
-                for word, box in prediction_group:
-                    if word == self.number_search_target:
-                        box_center = calc_box_center(box)
-
-                self.publishers[C.IMG_CEN_TOPIC].publish(ImgCenMsg(
-                    self.current_state,
-                    self.number_search_target,
-                    box_center)
+            if self.current_state != C.VISION_STATE_IDLE:
+                csv_img = self.bridge.imgmsg_to_cv2(img, desired_encoding='bgr8')
+                img_cen_msg = self.create_ImgCen_msg(csv_img)
+                self.publishers[C.IMG_CEN_TOPIC].publish(img_cen_msg)
                         
-
 
     def run(self):
         rospy.spin()

@@ -5,11 +5,17 @@ CMD_VEL_TOPIC = "cmd_vel"
 SCAN_TOPIC = "scan"
 ODOM_TOPIC = "odom"
 IMG_RAW_TOPIC = "camera/rgb/image_raw"
-IMG_CEN_TOPIC = "image_centroid"
+IMG_CEN_TOPIC = "q_learning/ImgCen"
 ROBOT_ACTION_TOPIC = "q_learning/RobotMoveDBToBlock"
+Q_MATRIX_TOPIC = "q_learning/QMatrix"
+REWARD_TOPIC = "q_learning/reward"
 QUEUE_SIZE = 10
 
 CENTER_RADIUS = 0.5
+
+CONTROLLER_STATE_INIT = "controller_state_init"
+CONTROLLER_STATE_LEARN = "controller_state_learn"
+CONTROLLER_STATE_LOOP = "controller_state_loop"
 
 ACTION_STATE_IDLE = "action_state_idle"
 ACTION_STATE_SCOUT = "action_state_scout"
@@ -40,18 +46,17 @@ VISION_STATE_COLOR_SEARCH = "vision_state_color_search"
 VISION_STATE_NUMBER_SEARCH = "vision_state_number_search"
 
 
-COLOR_NONE = "none"
+TARGET_NONE = "none"
 COLOR_RED = "red"
 COLOR_GREEN = "green"
 COLOR_BLUE = "blue"
-NUMBER_NONE = "0"
 NUMBER_ONE = "1"
 NUMBER_TWO = "2"
 NUMBER_THREE = "3"
 
 
-ARM_JOINT_GOAL_DOWN = [0, 0, 0, 0]
-ARM_JOINT_GOAL_UP = [1, 1, 1, 1]
+ARM_JOINT_GOAL_DOWN = [0]
+ARM_JOINT_GOAL_UP = [1]
 GRIPPER_JOINT_GOAL_OPEN = [0.5, 0.5]
 GRIPPER_JOINT_GOAL_CLOSED = [0.9, 0.9]
 

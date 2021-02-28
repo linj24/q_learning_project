@@ -5,29 +5,29 @@ import rospy
 import moveit_commander
 import moveit_msgs.msg
 from geometry_msgs.msg import Pose, Twist
+from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
 from arm_manipulation import ArmController
 from movement import MovementController
 from vision import VisionController
-from utils import ImgCenMsg, find_distance
-from q_learning_project.msg import RobotMoveDBToBlock
+from utils import find_distance
+from q_learning_project.msg import RobotMoveDBToBlock, ImgCen
 import constants as C
 
 
 class ActionController(object):
     
     def __init__(self):
-        rospy.init_node('q_bot_action')
-
-        self.initialize_subscribers()
+        #rospy.init_node('q_bot_action')
 
         self.arm_controller = ArmController()
         self.movement_controller = MovementController()
         self.vision_controller = VisionController()
 
+        self.initialize_subscribers()
+
         self.current_state = C.ACTION_STATE_IDLE
-        self.color_search_target = C.COLOR_NONE
-        self.number_search_target = C.NUMBER_NONE
+        self.search_target = C.TARGET_NONE
         self.conditions = {
             "IN_CENTER": True,
             "IN_FRONT_OF_OBJECT": False,
@@ -37,16 +37,16 @@ class ActionController(object):
         }
 
 
-    def initialize_subscribers(self):
-        rospy.Subscriber(C.ODOM_TOPIC, Pose, self.process_odom)
+    def initialize_subscribers(self) -> None:
+        rospy.Subscriber(C.ODOM_TOPIC, Odometry, self.process_odom)
         rospy.Subscriber(C.SCAN_TOPIC, LaserScan, self.process_scan)
-        rospy.Subscriber(C.IMG_CEN_TOPIC, ImgCenMsg, self.process_img_cen)
+        rospy.Subscriber(C.IMG_CEN_TOPIC, ImgCen, self.process_img_cen)
         rospy.Subscriber(C.ROBOT_ACTION_TOPIC, RobotMoveDBToBlock, self.process_action)
 
 
-    def process_odom(self, odom_data):
+    def process_odom(self, odom_data: Odometry) -> None:
         distance = find_distance(
-            self.movement_controller.starting_pose, odom_data)
+            self.movement_controller.starting_pose, odom_data.pose.pose)
         if distance < C.CENTER_RADIUS:
             self.conditions["IN_CENTER"] = True
         else:
@@ -54,7 +54,7 @@ class ActionController(object):
         self.update_controller_states(C.ACTION_STATE_MOVE_CENTER)
 
 
-    def process_scan(self, scan_data):
+    def process_scan(self, scan_data: LaserScan) -> None:
         front_distance = scan_data.ranges[0]
         if front_distance < C.SAFE_DISTANCE:
             self.conditions["IN_FRONT_OF_OBJECT"] = True
@@ -63,8 +63,8 @@ class ActionController(object):
         self.update_controller_states(C.ACTION_STATE_MOVE_CENTER)
 
 
-    def process_img_cen(self, img_cen_data):
-        if abs(img_cen_data[0]) < C.IMG_CEN_PIXEL_THRESHOLD:
+    def process_img_cen(self, img_cen_data: ImgCen) -> None:
+        if abs(img_cen_data.center_x) < C.IMG_CEN_PIXEL_THRESHOLD:
             if self.vision_controller.set_state(C.VISION_STATE_COLOR_SEARCH):
                 self.conditions["FACING_DUMBBELL"] = True
                 self.conditions["FACING_BLOCK"] = False
@@ -77,13 +77,13 @@ class ActionController(object):
         self.update_controller_states(C.ACTION_STATE_MOVE_CENTER)
         
 
-    def process_action(self, action):
+    def process_action(self, action: RobotMoveDBToBlock) -> None:
         self.vision_controller.set_color_search_target(action.robot_db)
         self.vision_controller.set_number_search_target(action.block_id)
         self.update_controller_states(C.ACTION_STATE_MOVE_CENTER)
 
 
-    def get_next_state(self):
+    def get_next_state(self) -> str:
         if self.current_state == C.ACTION_STATE_IDLE:
             return C.ACTION_STATE_MOVE_CENTER
 
@@ -131,7 +131,7 @@ class ActionController(object):
         return self.current_state
 
 
-    def update_controller_states(self, new_state):
+    def update_controller_states(self, new_state: str) -> None:
         self.current_state = new_state
         if new_state == C.ACTION_STATE_IDLE:
             self.arm_controller.set_state(C.ARM_STATE_IDLE)
@@ -174,5 +174,7 @@ class ActionController(object):
             self.vision_controller.set_state(C.VISION_STATE_IDLE)
 
 
-    def run(self):
+    def run(self) -> None:
+        self.movement_controller.run()
+        self.vision_controller.run()
         rospy.spin()

@@ -5,25 +5,27 @@ import numpy as np
 import moveit_commander
 import moveit_msgs.msg
 from geometry_msgs.msg import Pose, Twist
+from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
 import constants as C
-from utils import find_angle_offset, find_distance, wrap_bounds, ImgCenMsg
+from utils import find_angle_offset, find_distance, wrap_bounds
+from q_learning_project.msg import ImgCen
 
 
-def calculate_velocity_odom(bot_pose, target_pose):
+def calculate_velocity_odom(odom_data: Odometry, target_pose: Pose) -> Twist:
     bot_vel = Twist()
     
-    angle_offset = find_angle_offset(bot_pose, target_pose)
+    angle_offset = find_angle_offset(odom_data.pose.pose, target_pose)
     bot_vel.angular.z = C.KP_ANG * angle_offset
 
     if abs(angle_offset) < 90:
-        distance = find_distance(bot_pose, target_pose)
+        distance = find_distance(odom_data.pose.pose, target_pose)
         bot_vel.linear.x = C.KP_LIN * distance
 
     return bot_vel
 
 
-def calculate_velocity_scan(scan_data, target_angle):
+def calculate_velocity_scan(scan_data: LaserScan, target_angle: int) -> Twist:
     bot_vel = Twist()
     scan_lower_bound, scan_upper_bound = wrap_bounds(
         target_angle, 360, C.FRONT_ANGLE_RANGE)
@@ -50,10 +52,10 @@ def calculate_velocity_scan(scan_data, target_angle):
     return bot_vel
 
 
-def calculate_velocity_img_cen(center):
+def calculate_velocity_img_cen(img_cen: ImgCen) -> Twist:
     bot_vel = Twist()
-    if center.center is not None:
-        bot_vel.angular.z = C.KP_ANG * center.center[1]
+    if img_cen.target != C.TARGET_NONE:
+        bot_vel.angular.z = C.KP_ANG * img_cen.center_x
     else:
         bot_vel.angular.z = C.KP_ANG * C.SEARCH_TURN_VEL
     return bot_vel
@@ -62,7 +64,7 @@ def calculate_velocity_img_cen(center):
 class MovementController(object):
     
     def __init__(self):
-        rospy.init_node('q_bot_movement')
+        #rospy.init_node('q_bot_movement')
 
         self.publishers = self.initialize_publishers()
         self.initialize_subscribers()
@@ -72,7 +74,7 @@ class MovementController(object):
         self.last_twist = Twist()
         
         
-    def initialize_publishers(self):
+    def initialize_publishers(self) -> dict:
         publishers = {}
         publishers[C.CMD_VEL_TOPIC] = rospy.Publisher(
             C.CMD_VEL_TOPIC, Twist, queue_size=C.QUEUE_SIZE
@@ -80,28 +82,28 @@ class MovementController(object):
         return publishers
 
 
-    def initialize_subscribers(self):
+    def initialize_subscribers(self) -> None:
         rospy.Subscriber(C.ODOM_TOPIC, Pose, self.process_odom)
         rospy.Subscriber(C.SCAN_TOPIC, LaserScan, self.process_scan)
-        rospy.Subscriber(C.IMG_CEN_TOPIC, ImgCenMsg, self.process_img_cen)
+        rospy.Subscriber(C.IMG_CEN_TOPIC, ImgCen, self.process_img_cen)
 
 
-    def set_starting_pose(self, pose):
+    def set_starting_pose(self, pose: Pose) -> None:
         self.starting_pose = pose
 
 
-    def set_state(self, state):
+    def set_state(self, state: str) -> None:
         self.current_state = state
 
 
-    def process_odom(self, bot_pose):
+    def process_odom(self, odom_data: Odometry) -> None:
         if self.current_state == C.MOVEMENT_STATE_GO_TO_POSITION:
-            bot_vel = calculate_velocity_odom(bot_pose, self.starting_pose)
+            bot_vel = calculate_velocity_odom(odom_data, self.starting_pose)
             self.publishers[C.CMD_VEL_TOPIC].publish(bot_vel)
             self.last_twist = bot_vel
 
 
-    def process_scan(self, scan_data):
+    def process_scan(self, scan_data: LaserScan) -> None:
         if self.current_state == C.MOVEMENT_STATE_FOLLOW_OBJECT:
             bot_vel = calculate_velocity_scan(scan_data, 0)
             if bot_vel is not None:
@@ -109,7 +111,7 @@ class MovementController(object):
                 self.last_twist = bot_vel
 
 
-    def process_img_cen(self, img_cen):
+    def process_img_cen(self, img_cen: ImgCen) -> None:
         if self.current_state == C.MOVEMENT_STATE_FIND_OBJECT:
             bot_vel = calculate_velocity_img_cen(img_cen)
             self.publishers[C.CMD_VEL_TOPIC].publish(bot_vel)
@@ -122,6 +124,6 @@ class MovementController(object):
             self.last_twist = bot_vel
 
 
-    def run(self):
+    def run(self) -> None:
         rospy.spin()
 
