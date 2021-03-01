@@ -44,9 +44,11 @@ class QLearn():
         rospy.Subscriber("/q_learning/reward", QLearningReward, self.reward_received)
         # Sleep for one second to setup subscriber and publishers
         rospy.sleep(1.0)
-        self.qmat = np.zeros((self.NUM_STATES, self.NUM_ACTIONS))
+        self.qmat = np.zeros((self.NUM_STATES, self.NUM_ACTIONS), dtype=int)
         self.init_action_mat()
         self.reward = None
+        print(type(QMatrixRow()))
+        print(type(QMatrix()))
         self.do_qlearn()
     
     
@@ -153,6 +155,18 @@ class QLearn():
         mapping = {self.ORIGIN:"ORIGIN", self.BLOCK1: "BLOCK1", self.BLOCK2: "BLOCK2", self.BLOCK3: "BLOCK3"}
         return f"red: {mapping[ls[0]]}, green: {mapping[ls[1]]}, blue: {mapping[ls[2]]}"
 
+    def publish_qmat(self):
+        qmat_to_pub = QMatrix()
+        qmat_to_pub.header = Header(stamp=rospy.Time.now())
+        rows = []
+        for row in self.qmat:
+            qmat_row = QMatrixRow()
+            qmat_row.q_matrix_row = row
+            rows.append(qmat_row)
+
+        qmat_to_pub.q_matrix = rows
+        self.qmat_pub.publish(qmat_to_pub)
+
     def do_qlearn(self):
         last_update_iter = curr_iter = 0
         # state 0 is everything at origin
@@ -192,12 +206,9 @@ class QLearn():
             print(f"Old qmat value {last_q} new value {self.qmat[curr_state][action]}")
             if self.qmat[curr_state][action] != last_q:
                 print("QMat update did occur!")
-                self.print_qmat()
                 last_update_iter = curr_iter
-                qmat_to_pub = QMatrix()
-                qmat_to_pub.header = Header(stamp=rospy.Time.now())
-                qmat_to_pub.q_matrix = self.qmat
-                self.qmat_pub.publish(qmat_to_pub)
+                self.print_qmat()
+                self.publish_qmat()
                 print("Published qmat!")
                 print(f"curr_iter: {curr_iter}, state: {curr_state}, action: {action}, reward: {reward}")
            # else:
