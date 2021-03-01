@@ -48,7 +48,15 @@ We began by initializing a Q matrix storing an entry for every state-action comb
 `do_qlearn` - Every iteration until convergence, this function calls `get_rand_action` to get a random action to perform. Assuming there is one (ie the world does not need t oreset), this is converted to a `RobotMoveDBToBlock` with `action_num_to_obj`, and then the action is published. After a `rospy.sleep(1.0)`, the action should be performed.
 
 ### Updating the Q-matrix
+`update_q`-The core of the QLearning algorithm is a Bellman equation that can be seen on the project website, this function essentially just runs that equation and updates the Q-matrix with the result.  It returns True if the updated value is different from the old value, and False otherwise (used for tracking last update for convergence). 
+
+`publish_qmat`- If update-q returns True and the Q-matrix was updated, this function just converts its form in the QLearn class, which is a numpy array, to the QMatrix() object type, and publishes it. 
+
+`do_qlearn`-In each iteration, after performing an action as described above, this function calls `update_q` and then `publish_qmat` if the former returned True, which handles updating the Q-matrix.  
+
 ### Determining when to stop iterating through the Q-learning algorithm
+`do_qlearn`- This function keeps track of the current "iteration", which in this context just means the number of actions that have been performed, and the last iteration at which the Q-matrix update described above resulted in the Q-matrix changing at all (ie the last iteration in which `update_q` returned True). The function keeps going only while the difference between the current iteration number and iteration of the last update is sufficiently small; it stops when it gets high enough (we ended up choosing 400 after a stray run ended before convergence with a value of 200). 
+
 ### Executing the path most likely to lead to receiving a reward after the Q-matrix has converged on the simulated Turtlebot3 robot
 ## Robot perception description: Describe how you accomplished each of the following components of the perception elements of this project in 1-3 sentences, any online sources of information/code that helped you to recognize the objects, and also describe what functions / sections of the code executed each of these components (1-3 sentences per function / portion of code):
 ### Identifying the locations and identities of each of the colored dumbbells
