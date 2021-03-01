@@ -41,6 +41,9 @@ We began by initializing a Q matrix storing an entry for every state-action comb
 
 ## Q-learning algorithm description: Describe how you accomplished each of the following components of the Q-learning algorithm in 1-3 sentences, and also describe what functions / sections of the code executed each of these components(1-3 sentences per function / portion of code):
 ### Selecting and executing actions for the robot (or phantom robot) to take
+`get_rand_action` - Given a start state, this function looks at that state's row entry in the action_matrix, which holds a list of actions indexed by the state the actions lead to if performed; some of these state indices hold the value -1 to indicate that that state cannot be reached. This function randomly selects one of these actions and returns both it and the state it leads to.
+`action_num_to_obj` - Given the number of an action, this function finds the block number and dumbbell color involved in the action, and returns a `RobotMoveDBToBlock` object holding this encoding of the action. The block number is found by the result of `action % 3` and the color is found with the value of `(action - block_num) // 3`. This makes sense because the block numbers change from 1-3 by increasing by 1 and modding 3 as you go through the action numbers, and the DB color changes as action goes up by 3. 
+`do_qlearn` - Every iteration until convergence, this function calls `get_rand_action` to get a random action to perform. Assuming there is one (ie the world does not need t oreset), this is converted to a `RobotMoveDBToBlock` with `action_num_to_obj`, and then the action is published. After a `rospy.sleep(1.0)`, the action should be performed.
 
 ### Updating the Q-matrix
 ### Determining when to stop iterating through the Q-learning algorithm
