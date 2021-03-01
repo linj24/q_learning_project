@@ -47,8 +47,6 @@ class QLearn():
         self.qmat = np.zeros((self.NUM_STATES, self.NUM_ACTIONS), dtype=int)
         self.init_action_mat()
         self.reward = None
-        print(type(QMatrixRow()))
-        print(type(QMatrix()))
         self.do_qlearn()
     
     
@@ -68,6 +66,12 @@ class QLearn():
     
 
     def action_num_to_obj(self, action):
+        """
+        Takes a number representing an action and returns the
+        RobotMoveDBToBlock object representing it.
+        If DB_color not in [self.BLUE, self.GREEN, self.RED] raises a 
+        RuntimeError. 
+        """
         block_num = action % 3
         DB_color = (action - block_num) // 3
         block_num += 1
@@ -85,9 +89,10 @@ class QLearn():
 
     def state_num_to_ls(self, state_num):
         """
-        Maps a state_num in [0, 63] to a list of 
+        Maps a state_num in [0, 63] to a list of form
         [red_DB_state, green_DB_state, blue_DB_state]
-        where those values are in [0, 4] to indicate origin or at one of the 3 blocks
+        where those values are in 
+        [self.ORIGIN, self.BLOCK1, self.BLOCK2, self.BLOCK3]
         """
         red = state_num % 4
         green = (state_num // 4) % 4
@@ -96,6 +101,14 @@ class QLearn():
         
 
     def get_action_for_state_change(self, state1_num, state2_num):
+        """
+        Returns -1 if there is no action that moves from state1_num to state2_num
+        or the number of the action that makes that move otherwise.
+        More specifically, -1 will be returned if:
+        -Changing states requires moving > 1 DB
+        -Changing states requires moving a DB that is not at origin
+        -The states are the same
+        """
         state1_ls = self.state_num_to_ls(state1_num)
         state2_ls = self.state_num_to_ls(state2_num)
         # If the states are the same return -1; no action needed
@@ -123,8 +136,10 @@ class QLearn():
 
 
     def init_action_mat(self):
-        # action_mat[curr_state][desired_next_state] = action to get to desired state
-        # -1 if transition is impossible
+        """
+        Initializes self.action_mat by calling get_action_for_state_change
+        on every possible two states. 
+        """
         NUM_STATES = self.NUM_STATES
         self.action_mat = np.zeros((NUM_STATES, NUM_STATES), dtype=int)
         for s1 in range(NUM_STATES):
@@ -141,8 +156,6 @@ class QLearn():
         # actions stores a list of actions indexed by end state
         actions = self.action_mat[start_state]
         valid_actions = [action for action in actions if action != -1]
-        print("start state followed by valid actions: ")
-        print(start_state, valid_actions)
         if not valid_actions:
             return (-1, -1)
         action = random.choice(valid_actions)
@@ -150,22 +163,36 @@ class QLearn():
         final_state = np.where(actions == action)[0][0]
         return (action, final_state)
         
-    def state_to_desc(self, state):
-        ls = self.state_num_to_ls(state)
-        mapping = {self.ORIGIN:"ORIGIN", self.BLOCK1: "BLOCK1", self.BLOCK2: "BLOCK2", self.BLOCK3: "BLOCK3"}
-        return f"red: {mapping[ls[0]]}, green: {mapping[ls[1]]}, blue: {mapping[ls[2]]}"
+    def update_q(self, state, action, next_state, reward, alpha, gamma):
+        """
+        Updates self.qmat[curr_state][action] with the given reward,
+        parameters, and next state. 
+        Returns True if the q was updated, False otherwise. 
+        
+        """
+        last_q = self.qmat[state][action]
+        next_max_Q = np.max(self.qmat[next_state])
+        updated_q = last_q + alpha * (reward + gamma * next_max_Q - last_q)
+        self.qmat[state][action] = updated_q
+        return updated_q != last_q
+
 
     def publish_qmat(self):
+        """
+        Converts self.qmat into a QMatrix() object and 
+        publishes it to /q_learning/q_matrix
+        """
         qmat_to_pub = QMatrix()
         qmat_to_pub.header = Header(stamp=rospy.Time.now())
         rows = []
         for row in self.qmat:
             qmat_row = QMatrixRow()
-            qmat_row.q_matrix_row = row
+            qmat_row.q_matrix_row = list(row)
             rows.append(qmat_row)
 
         qmat_to_pub.q_matrix = rows
         self.qmat_pub.publish(qmat_to_pub)
+
 
     def do_qlearn(self):
         last_update_iter = curr_iter = 0
@@ -177,19 +204,14 @@ class QLearn():
         gamma = 0.5
         # Converge after we have not updated qmat for converge_threshold iterations
         while curr_iter - last_update_iter < converge_threshold:
-            print('------------------------------------------')
-            print("curr iteration: ", curr_iter)
             (action, next_state) = self.get_rand_action(curr_state)
-            print(self.state_to_desc(curr_state))
             if action == -1:
                 # No valid actions left; all DBs at a block and this iteration is over
-               # print("No valid actions left. Sleeping for a second; world should reset")
                 rospy.sleep(1)
                 curr_state = 0
                 continue
 
             action_obj = self.action_num_to_obj(action)
-            print("Publishing action num ", action, "with obj: ", action_obj)
             self.action_pub.publish(action_obj)
             # Sleep to let action process
             rospy.sleep(1.0)
@@ -198,46 +220,40 @@ class QLearn():
                 rospy.sleep(1)
             reward = self.reward.reward
             self.reward = None
-            last_q = self.qmat[curr_state][action]
-            next_max_Q = np.max(self.qmat[next_state])
-            print(last_q, alpha, reward, gamma, next_max_Q)
-            self.qmat[curr_state][action] = last_q + alpha * (reward + gamma * next_max_Q - last_q)
-            print(f"Updated state {curr_state} action {action}")
-            print(f"Old qmat value {last_q} new value {self.qmat[curr_state][action]}")
-            if self.qmat[curr_state][action] != last_q:
-                print("QMat update did occur!")
+
+            if self.update_q(curr_state, action, next_state, reward, alpha, gamma):
                 last_update_iter = curr_iter
-                self.print_qmat()
                 self.publish_qmat()
-                print("Published qmat!")
-                print(f"curr_iter: {curr_iter}, state: {curr_state}, action: {action}, reward: {reward}")
-           # else:
-           #     print("QMat update did not occur")
-            print(f"Changing from state {curr_state} to {next_state}")
             curr_state = next_state
             curr_iter += 1
-        print("Done qlearning; matrix converged")
 
-            
             
     def reward_received(self, data):
-        print("Received reward!!!!======= ")
-        print(data)
-
+        """
+        Callback for reward events. Just saves the reward in class
+        """
+        # For unknown reason, multiple rewards are received sometimes for one action
+        # if that action places the last DB in front of a block. 
+        # The if check prevents this as only the first one is relevant to the action
         if not self.reward:
             self.reward = data
-        else:
-            print("DISCARDING^%*Y%!*Y!((*$Y*(!$(*!$")
 
     
     def print_qmat(self):
+        """
+        Method for testing that just prints the rows of self.qmat
+        """
         for row in self.qmat:
             print(row)
 
+    def state_to_desc(self, state):
+        """
+        Method a for testing that converts a state number to a description of each
+        DB's location and returns that as a string. 
+        """
+        ls = self.state_num_to_ls(state)
+        mapping = {self.ORIGIN:"ORIGIN", self.BLOCK1: "BLOCK1", self.BLOCK2: "BLOCK2", self.BLOCK3: "BLOCK3"}
+        return f"red: {mapping[ls[0]]}, green: {mapping[ls[1]]}, blue: {mapping[ls[2]]}"
 
 if __name__ == "__main__":
     learner = QLearn()
-
-
-
-        
