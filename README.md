@@ -33,9 +33,15 @@ Enrique Collin and Jason Lin
 
 # Writeup
 ## Objectives description (2-3 sentences): Describe the goal of this project.
+The goal of this project was to implement a Q-learning algorithm that could train our robot to move certain colored dumbells in front of certain colored blocks. Aside from the Q-learning algorithm, crucial components of this also included implementing robot perception such that our robot could identify which blocks/dumbbells were which, and (2) implementing robot manipulation and movement such that the robot could move to the blocks/dummbells and grab the latter.
+
+
 ## High-level description (1 paragraph): At a high-level, describe how you used reinforcement learning to solve the task of determining which dumbbells belong in front of each numbered block.
+We began by initializing a Q matrix storing an entry for every state-action combination possible, entries initialized to 0. Until this matrix converged, we did the following. First, we selected a random action from among all the possible actions and had the robot perform that action. We then waited for the reward to come in, at which point we updated the Q matrix based on the reward for that action and the Q-value at any of the possible achievable states from the state the action put us into (looking ahead). Eventually, the Q-matrix hadn't changed for some determined number of iterations of these steps, which we deemed convergence. This left us with a Q-matrix storing the values represented by each action in each state. Once this was done, we could (1) find the current state of the robot (2) find the action in the current state with maximum q-value and (3) execute that action; assuming the above steps of setting the Q-matrix worked, this would lead to the dumbbeels being in front of each numbered block since that would maximize the q-value. 
+
 ## Q-learning algorithm description: Describe how you accomplished each of the following components of the Q-learning algorithm in 1-3 sentences, and also describe what functions / sections of the code executed each of these components(1-3 sentences per function / portion of code):
 ### Selecting and executing actions for the robot (or phantom robot) to take
+
 ### Updating the Q-matrix
 ### Determining when to stop iterating through the Q-learning algorithm
 ### Executing the path most likely to lead to receiving a reward after the Q-matrix has converged on the simulated Turtlebot3 robot
