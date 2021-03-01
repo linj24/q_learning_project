@@ -148,20 +148,25 @@ class QLearn():
         final_state = np.where(actions == action)[0][0]
         return (action, final_state)
         
+    def state_to_desc(self, state):
+        ls = self.state_num_to_ls(state)
+        mapping = {self.ORIGIN:"ORIGIN", self.BLOCK1: "BLOCK1", self.BLOCK2: "BLOCK2", self.BLOCK3: "BLOCK3"}
+        return f"red: {mapping[ls[0]]}, green: {mapping[ls[1]]}, blue: {mapping[ls[2]]}"
 
     def do_qlearn(self):
         last_update_iter = curr_iter = 0
         # state 0 is everything at origin
         curr_state = 0
-        converge_threshold = 200
+        converge_threshold = 400
         alpha = 1
         # Consider fine-tuning gamma choice
-        gamma = 1
+        gamma = 0.5
         # Converge after we have not updated qmat for converge_threshold iterations
         while curr_iter - last_update_iter < converge_threshold:
             print('------------------------------------------')
             print("curr iteration: ", curr_iter)
             (action, next_state) = self.get_rand_action(curr_state)
+            print(self.state_to_desc(curr_state))
             if action == -1:
                 # No valid actions left; all DBs at a block and this iteration is over
                # print("No valid actions left. Sleeping for a second; world should reset")
@@ -183,10 +188,9 @@ class QLearn():
             next_max_Q = np.max(self.qmat[next_state])
             print(last_q, alpha, reward, gamma, next_max_Q)
             self.qmat[curr_state][action] = last_q + alpha * (reward + gamma * next_max_Q - last_q)
-            tolerance = 0.01
             print(f"Updated state {curr_state} action {action}")
             print(f"Old qmat value {last_q} new value {self.qmat[curr_state][action]}")
-            if abs(self.qmat[curr_state][action] - last_q) > tolerance:
+            if self.qmat[curr_state][action] != last_q:
                 print("QMat update did occur!")
                 self.print_qmat()
                 last_update_iter = curr_iter
@@ -208,7 +212,12 @@ class QLearn():
     def reward_received(self, data):
         print("Received reward!!!!======= ")
         print(data)
-        self.reward = data
+
+        if not self.reward:
+            self.reward = data
+        else:
+            print("DISCARDING^%*Y%!*Y!((*$Y*(!$(*!$")
+
     
     def print_qmat(self):
         for row in self.qmat:
