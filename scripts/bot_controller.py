@@ -1,38 +1,45 @@
 #!/usr/bin/env python3
 
 import rospy
-import moveit_commander
-import moveit_msgs.msg
-import geometry_msgs.msg
-
-# Robot states
-# Initializing: Setting up everything 
-# Learning: Phantom bot movement, q matrix
-# Idle: Waiting for an action
-# Scouting: Checking where each block/dumbbell is
-# Finding_Dumbbell: Moving to dumbbell
-# Grab Dumbbell: Using the arm to pick up the dumbbell
-# Finding_Block: Moving to block with dumbbell
-# Releasing Dumbbell: Using the arm to put down the dumbbell
-STATE_INIT = 0
-STATE_LEARN = 1
-STATE_LOOP = 2
+from bot_action import ActionController
+from q_learning_project.msg import RobotMoveDBToBlock, QMatrix
+import constants as C
 
 
 class Robot(object):
     
     def __init__(self):
-        rospy.init_node('q_main')
+        rospy.init_node('q_learning')
 
-    
+        self.action_controller = ActionController()
 
-    def update_state(self):
+        self.publishers = self.initialize_publishers()
+        self.initialize_subscribers()
+
+
+    def initialize_publishers(self) -> dict:
+        publishers = {}
+
+        publishers[C.ROBOT_ACTION_TOPIC] = rospy.Publisher(
+            C.ROBOT_ACTION_TOPIC, RobotMoveDBToBlock, queue_size=C.QUEUE_SIZE
+        )
+
+        return publishers
+
+
+    def initialize_subscribers(self) -> None:
+        rospy.Subscriber(C.Q_MATRIX_TOPIC, QMatrix, self.process_q_matrix)
+
+
+    def process_q_matrix(self, q_matrix: QMatrix) -> None:
         pass
+
         
-    def run(self):
+    def run(self) -> None:
+        self.action_controller.run()
         rospy.spin()
 
 
 if __name__=="__main__":
-
-    run()
+    bot = Robot()
+    bot.run()
