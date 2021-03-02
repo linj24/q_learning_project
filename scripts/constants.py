@@ -10,9 +10,7 @@ ROBOT_ACTION_TOPIC = "q_learning/robot_action"
 Q_MATRIX_TOPIC = "q_learning/q_matrix"
 REWARD_TOPIC = "q_learning/reward"
 ACTION_STATE_TOPIC = "q_learning/states/action"
-ARM_STATE_TOPIC = "q_learning/states/arm"
-MOVEMENT_STATE_TOPIC = "q_learning/states/movement"
-VISION_STATE_TOPIC = "q_learning/states/vision"
+ARM_RAISED_TOPIC = "q_learning/arm_raised"
 QUEUE_SIZE = 10
 
 CENTER_RADIUS = 0.5
@@ -43,6 +41,7 @@ MOVEMENT_STATE_IDLE = "movement_state_idle"
 MOVEMENT_STATE_GO_TO_POSITION = "movement_state_go_to_position"
 MOVEMENT_STATE_FIND_OBJECT = "movement_state_find_object"
 MOVEMENT_STATE_FOLLOW_OBJECT = "movement_state_track_object"
+MOVEMENT_STATE_APPROACH_OBJECT = "movement_state_approach_object"
 
 
 VISION_STATE_IDLE = "vision_state_idle"
@@ -61,10 +60,11 @@ NUMBER_THREE = 3
 
 ARM_JOINT_NAMES = ['joint1', 'joint2', 'joint3', 'joint4']
 ARM_JOINT_GOAL_DOWN = [0.000, 0.500, 0.500, -1.000]
-ARM_JOINT_GOAL_UP = [0.000, -1.800, 1.300, -1.200]
-GRIPPER_JOINT_NAMES = ['gripper_link', 'gripper_link_sub']
-GRIPPER_JOINT_GOAL_OPEN = [0.020, 0.020]
-GRIPPER_JOINT_GOAL_CLOSED = [0.010, 0.010]
+ARM_JOINT_GOAL_UP = [0.0000, -1.500, 1.000, -1.000]
+#ARM_JOINT_GOAL_UP = [0.000, -1.800, 1.300, -1.200]
+GRIPPER_JOINT_NAMES = ['gripper', 'gripper_sub']
+GRIPPER_JOINT_GOAL_OPEN = [0.015, 0.015]
+GRIPPER_JOINT_GOAL_CLOSED = [0.005, 0.005]
 
 
 MVMT_THRESH_LIN = 0.2
@@ -72,18 +72,22 @@ MVMT_THRESH_ANG = 0.6
 
 
 # Proportional coefficient for linear velocity
-KP_LIN = 0.3
+KP_LIN = 0.75
 # Proportional coefficient for angular velocity
 KP_ANG = 0.01
 # Angular velocity for searching for objects
+CENTER_NAV_MODIFIER = 10
 SEARCH_TURN_VEL = 30
 # Safe distance from object
-SAFE_DISTANCE = 0.7
+SAFE_DISTANCE = 0.18
 # Greatest distance to start following the object at
 DETECTION_LIMIT = 3.5
 FRONT_ANGLE_RANGE = 60
+APPROACH_SPEED = 0.01
+LOCK_ON_MODIFIER_FOLLOW = 0.01
+LOCK_ON_MODIFIER_APPROACH = 0.1
 
-IMG_CEN_PIXEL_THRESHOLD = 30
+IMG_CEN_PIXEL_THRESHOLD = 20
 
 LOWER_RED_1 = np.array([0, 50, 50])
 UPPER_RED_1 = np.array([15, 255, 255])

@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
-import rospy, cv2, cv_bridge, keras_ocr
+import rospy
+import cv2
+import cv_bridge
 import numpy as np
 from sensor_msgs.msg import Image
-from utils import wrap_bounds
 from q_learning_project.msg import ActionState, ImgCen
+from utils import wrap_bounds
 import constants as C
+import keras_ocr
 
 
 def mask_hue(img, hue):
@@ -19,13 +22,16 @@ def mask_hue(img, hue):
 
         lower_bound_2 = np.array([
             hue_lower_bound, C.MIN_SAT, C.MIN_VAL]).astype(int)
-        upper_bound_2 = np.array([180, C.MAX_SAT, C.MAX_VAL]).astype(int)
+        upper_bound_2 = np.array(
+            [180, C.MAX_SAT, C.MAX_VAL]).astype(int)
         mask2 = cv2.inRange(img, lower_bound_2, upper_bound_2)
 
         return mask1 + mask2
     else:
-        lower_bound = np.array([hue_lower_bound, C.MIN_SAT, C.MIN_VAL])
-        upper_bound = np.array([hue_upper_bound, C.MAX_SAT, C.MAX_VAL])
+        lower_bound = np.array(
+            [hue_lower_bound, C.MIN_SAT, C.MIN_VAL]).astype(int)
+        upper_bound = np.array(
+            [hue_upper_bound, C.MAX_SAT, C.MAX_VAL]).astype(int)
         mask = cv2.inRange(img, lower_bound, upper_bound)
 
         return mask
@@ -34,17 +40,17 @@ def mask_hue(img, hue):
 def calc_color_centroid(img, mask):
     # Code from class meeting 03
     h, w, _ = img.shape
-    search_top = int(3*h/4)
-    search_bot = int(3*h/4 + 20)
-    mask[0:search_top, 0:w] = 0
-    mask[search_bot:h, 0:w] = 0
+    # search_top = int(3*h/4)
+    # search_bot = int(3*h/4 + 20)
+    # mask[0:search_top, 0:w] = 0
+    # mask[search_bot:h, 0:w] = 0
 
     M = cv2.moments(mask)
 
     if M['m00'] > 0:
         cx = int(M['m10']/M['m00'])
         cy = int(M['m01']/M['m00'])
-        return (cx - (h//2), cy - (w//2))
+        return (cx - (w//2), cy - (h//2))
 
     return None
 
@@ -61,20 +67,20 @@ def calc_box_center(box):
 
 
 class VisionController(object):
-    
+
     def __init__(self):
         rospy.init_node('q_bot_vision')
 
-        self.publishers = self.initialize_publishers()
-        self.initialize_subscribers()
-        
         self.current_state = C.VISION_STATE_IDLE
         self.color_search_target = C.TARGET_NONE
         self.number_search_target = C.TARGET_NONE
         self.bridge = cv_bridge.CvBridge()
-        self.pipeline = keras_ocr.pipeline.Pipeline()
 
-        
+        self.publishers = self.initialize_publishers()
+        self.initialize_subscribers()
+
+        #self.pipeline = keras_ocr.pipeline.Pipeline()
+
     def initialize_publishers(self):
         publishers = {}
 
@@ -84,7 +90,6 @@ class VisionController(object):
 
         return publishers
 
-
     def initialize_subscribers(self):
         rospy.Subscriber(C.IMG_RAW_TOPIC, Image, self.process_image)
         rospy.Subscriber(
@@ -92,18 +97,14 @@ class VisionController(object):
             ActionState,
             self.process_action_state)
 
-
     def set_state(self, new_state):
         self.current_state = new_state
-
 
     def set_color_search_target(self, search_target):
         self.color_search_target = search_target
 
-
     def set_number_search_target(self, search_target):
         self.number_search_target = search_target
-        
 
     def color_state_to_hue(self):
         if self.color_search_target == C.COLOR_RED:
@@ -114,7 +115,6 @@ class VisionController(object):
             return C.BLUE_HUE
         else:
             return
-
 
     def create_ImgCen_msg(self, csv_img):
         img_cen_msg = ImgCen()
@@ -133,12 +133,12 @@ class VisionController(object):
         elif self.current_state == C.VISION_STATE_NUMBER_SEARCH:
             img_cen_msg.target = self.number_search_target
 
-            prediction_group = self.pipeline.recognize([csv_img])[0]
+            # prediction_group = self.pipeline.recognize([csv_img])[0]
 
-            for word, box in prediction_group:
-                if word == self.number_search_target:
-                    box_center = calc_box_center(box)
-        
+            # for word, box in prediction_group:
+            #     if word == self.number_search_target:
+            #         center = calc_box_center(box)
+
         if center is None:
             img_cen_msg.target = C.TARGET_NONE
             img_cen_msg.center_x = 0.0
@@ -146,11 +146,12 @@ class VisionController(object):
         else:
             img_cen_msg.center_x = center[0]
             img_cen_msg.center_y = center[1]
-        
+
         return img_cen_msg
 
-
     def process_action_state(self, action_state):
+        self.set_color_search_target(action_state.robot_db)
+        self.set_number_search_target(action_state.block_id)
         new_state = action_state.action_state
 
         if new_state == C.ACTION_STATE_IDLE:
@@ -172,20 +173,21 @@ class VisionController(object):
             self.set_state(C.VISION_STATE_NUMBER_SEARCH)
 
         elif new_state == C.ACTION_STATE_MOVE_BLOCK:
-            self.set_state(C.VISION_STATE_NUMBER_SEARCH
-            
+            self.set_state(C.VISION_STATE_NUMBER_SEARCH)
+
         elif new_state == C.ACTION_STATE_RELEASE:
             self.set_state(C.VISION_STATE_IDLE)
 
-
     def process_image(self, img):
-        print("Img_received")
         if self.current_state != C.VISION_STATE_IDLE:
-            print("Searching")
             csv_img = self.bridge.imgmsg_to_cv2(img, desired_encoding='bgr8')
             img_cen_msg = self.create_ImgCen_msg(csv_img)
             self.publishers[C.IMG_CEN_TOPIC].publish(img_cen_msg)
-                    
 
     def run(self):
         rospy.spin()
+
+
+if __name__ == "__main__":
+    controller = VisionController()
+    controller.run()

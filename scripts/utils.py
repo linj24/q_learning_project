@@ -46,7 +46,7 @@ def wrap_bounds(
         center_value: float,
         maximum_value: float,
         total_range: float
-        ) -> tuple:
+) -> tuple:
     lower_bound = (center_value - (total_range / 2)) % maximum_value
     upper_bound = (center_value + (total_range / 2)) % maximum_value
     return (lower_bound, upper_bound)

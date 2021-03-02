@@ -53,6 +53,7 @@ add_message_files(
     ImgCen.msg
     ManipulatorAction.msg
     ActionState.msg
+    ArmRaised.msg
     QLearningReward.msg
     QMatrix.msg
     QMatrixRow.msg
