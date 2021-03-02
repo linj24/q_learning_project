@@ -47,8 +47,13 @@ class QLearn():
         self.qmat = np.zeros((self.NUM_STATES, self.NUM_ACTIONS), dtype=int)
         self.init_action_mat()
         self.reward = None
-        self.do_qlearn()
     
+    
+    def run(self):
+        # Converge the matrix
+        self.do_qlearn()
+        # Spin to wait for manipulator_action requests
+        rospy.spin()
     
     def get_action_number(self, DB_color, block_number):
         """
@@ -257,3 +262,4 @@ class QLearn():
 
 if __name__ == "__main__":
     learner = QLearn()
+    learner.run()
