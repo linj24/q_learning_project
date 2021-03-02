@@ -264,7 +264,7 @@ class QLearn():
                 if qval > best_qval:
                     best_action = action
                     best_qval = qval
-            (db, block) = self.action_to_desc(action)
+            (db, block) = self.action_to_desc(best_qval)
             action_obj = ManipulatorAction()
             action_obj.is_confirmation = False
             action_obj.block_id = block
