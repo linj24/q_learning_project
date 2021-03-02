@@ -5,7 +5,7 @@ import rospy
 from geometry_msgs.msg import Pose
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
-from q_learning_project.msg import RobotMoveDBToBlock, ActionState, ImgCen, ArmRaised
+from q_learning_project.msg import RobotMoveDBToBlock, ActionState, ImgCen, ArmRaised, ManipulatorAction
 from utils import find_distance
 import constants as C
 
@@ -35,14 +35,17 @@ class ActionController(object):
         publishers[C.ACTION_STATE_TOPIC] = rospy.Publisher(
             C.ACTION_STATE_TOPIC, ActionState, queue_size=C.QUEUE_SIZE
         )
+        publishers[C.MANIPULATOR_ACTION_TOPIC] = rospy.Publisher(
+            C.MANIPULATOR_ACTION_TOPIC, ManipulatorAction, queue_size=C.QUEUE_SIZE
+        )
         return publishers
 
     def initialize_subscribers(self) -> None:
         rospy.Subscriber(C.ODOM_TOPIC, Odometry, self.process_odom)
         rospy.Subscriber(C.SCAN_TOPIC, LaserScan, self.process_scan)
         rospy.Subscriber(C.IMG_CEN_TOPIC, ImgCen, self.process_img_cen)
-        rospy.Subscriber(C.ROBOT_ACTION_TOPIC,
-                         RobotMoveDBToBlock, self.process_action)
+        rospy.Subscriber(C.MANIPULATOR_ACTION_TOPIC,
+                         ManipulatorAction, self.process_manipulator_action)
         rospy.Subscriber(C.ARM_RAISED_TOPIC, ArmRaised,
                          self.process_arm_raised)
 
@@ -52,6 +55,13 @@ class ActionController(object):
         action_state.robot_db = self.current_robot_action.robot_db
         action_state.block_id = self.current_robot_action.block_id
         return action_state
+
+    def create_ManipulatorAction_msg(self) -> ManipulatorAction:
+        confirmation = ManipulatorAction()
+        confirmation.is_confirmation = True
+        confirmation.block_id = self.current_robot_action.block_id
+        confirmation.robot_db = self.current_robot_action.robot_db
+        return confirmation
 
     def process_odom(self, odom_data: Odometry) -> None:
         if not self.initialized:
@@ -68,7 +78,7 @@ class ActionController(object):
 
     def process_scan(self, scan_data: LaserScan) -> None:
         front_distance = min(
-            min(scan_data.ranges[0:15]), min(scan_data.ranges[345:]))
+            scan_data.ranges[:C.FRONT_ANGLE_RANGE//2], scan_data.ranges[-C.FRONT_ANGLE_RANGE//2:])
         if front_distance < C.SAFE_DISTANCE:
             self.conditions["IN_FRONT_OF_OBJECT"] = True
         else:
@@ -89,9 +99,11 @@ class ActionController(object):
             self.conditions["FACING_BLOCK"] = False
         self.update_controller_states(self.get_next_state())
 
-    def process_action(self, action: RobotMoveDBToBlock) -> None:
-        self.current_robot_action = action
-        self.update_controller_states(C.ACTION_STATE_MOVE_CENTER)
+    def process_manipulator_action(self, action: ManipulatorAction) -> None:
+        if not action.is_confirmation:
+            self.current_robot_action.block_id = action.block_id
+            self.current_robot_action.robot_db = action.robot_db
+            self.update_controller_states(C.ACTION_STATE_MOVE_CENTER)
 
     def process_arm_raised(self, raised_flag: ArmRaised) -> None:
         self.conditions["HOLDING_DUMBBELL"] = raised_flag.arm_raised
@@ -136,6 +148,9 @@ class ActionController(object):
 
         elif self.current_state == C.ACTION_STATE_RELEASE:
             if not self.conditions["HOLDING_DUMBBELL"]:
+                confirmation = self.create_ManipulatorAction_msg()
+                self.publishers[C.MANIPULATOR_ACTION_TOPIC].publish(
+                    confirmation)
                 return C.ACTION_STATE_IDLE
 
         return self.current_state
