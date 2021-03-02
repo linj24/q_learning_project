@@ -109,6 +109,18 @@ class QLearn():
         green = (state_num // 4) % 4
         blue = (state_num // 16) % 4
         return [red, green, blue]
+    
+
+    def state_ls_to_num(self, state_ls):
+        """
+        Given a state_ls of form returned by state_num_to_ls,
+        returns the equivalent state_num.
+        """
+        state = 0
+        state += state_ls[0]
+        state += 4 * state_ls[1]
+        state += 4 * 4 * state_ls[2]
+        return state
         
 
     def get_action_for_state_change(self, state1_num, state2_num):
@@ -209,7 +221,7 @@ class QLearn():
         last_update_iter = curr_iter = 0
         # state 0 is everything at origin
         curr_state = 0
-        converge_threshold = 400
+        converge_threshold = 300
         alpha = 1
         # Consider fine-tuning gamma choice
         gamma = 0.5
@@ -243,8 +255,34 @@ class QLearn():
         Returns True if the state given has all 3 dumbbells at a block,
         False otherwise.
         """
-        state_ls = state_num_to_ls(state)
+        state_ls = self.state_num_to_ls(state)
         return self.ORIGIN not in state_ls
+
+    def is_valid_action(self, state, action):
+        """
+        Given a state and action, returns True
+        if the action is valid for the current state,
+        False otherwise.
+        """
+        (db, block) = self.action_to_desc(action)
+        state_ls = self.state_num_to_ls(state)
+        mapping = {"red": self.RED, "green": self.GREEN, "blue": self.BLUE}
+        return (block not in state_ls and state_ls[mapping[db]] == self.ORIGIN)
+
+    def get_action_end_state(self, state, action):
+        """
+        Given a state and action, returns the final state
+        that will result if you perform the action.
+        Raises RuntimeError if self.is_valid returns False
+        """
+        if not self.is_valid_action(state, action):
+            raise RuntimeError("Given invalid action for state in get_action_end_state!")
+        state_ls = self.state_num_to_ls(state)
+        (db, block) = self.action_to_desc(action)
+        mapping = {"red": self.RED, "green": self.GREEN, "blue": self.BLUE}
+        state_ls[mapping[db]] = block
+        return self.state_ls_to_num(state_ls)
+
 
     def execute_path_for_reward(self):
         """
@@ -258,18 +296,26 @@ class QLearn():
             # We have not yet received confirmation for currenet action
             self.action_confirmation_received = False
             qvals = self.qmat[curr_state]
-            best_action = 0
-            best_qval = -float('inf')
-            for (action, qval) in enumerate(qvals):
-                if qval > best_qval:
-                    best_action = action
-                    best_qval = qval
+            # Do the work below in case of strange possible QMatrices
+            # That won't actually show up in our problem
+            best_actions = np.argsort(qvals)
+            i = len(best_actions) - 1
+            best_action = best_actions[i]
+            while not self.is_valid_action(curr_state, best_action):
+                if i == 0:
+                    # There are no valid actions
+                    return 
+                else:
+                    i -= 1
+                    best_action = best_actions[i]
+
             (db, block) = self.action_to_desc(best_action)
             action_obj = ManipulatorAction()
             action_obj.is_confirmation = False
             action_obj.block_id = block
             action_obj.robot_db = db
             self.manipulator_action_pub.publish(action_obj)
+            curr_state = self.get_action_end_state(curr_state, best_action)
             # Now wait for response
             while not self.action_confirmation_received:
                 rospy.sleep(2.0)
