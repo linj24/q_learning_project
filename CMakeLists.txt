@@ -51,6 +51,8 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
     FILES
     ImgCen.msg
+    ManipulatorAction.msg
+    ActionState.msg
     QLearningReward.msg
     QMatrix.msg
     QMatrixRow.msg
