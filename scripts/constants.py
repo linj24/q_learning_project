@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import numpy as np
 
+MANIPULATOR_ACTION_TOPIC = "/q_learning/manipulator_action"
 CMD_VEL_TOPIC = "cmd_vel"
 SCAN_TOPIC = "scan"
 ODOM_TOPIC = "odom"

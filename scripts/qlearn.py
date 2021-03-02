@@ -9,6 +9,8 @@ from q_learning_project.msg import RobotMoveDBToBlock
 from q_learning_project.msg import QLearningReward
 from q_learning_project.msg import QMatrixRow
 from q_learning_project.msg import QMatrix
+from q_learning_project.msg import ManipulatorAction
+from constants import MANIPULATOR_ACTION_TOPIC
 
 import numpy as np
 import random
@@ -38,10 +40,15 @@ class QLearn():
         rospy.init_node('qlearn')
 
         # Setup publisher for changes to QMatrix and when we want to send an action
-        self.qmat_pub = rospy.Publisher("/q_learning/q_matrix", QMatrix, queue_size=10)
-        self.action_pub = rospy.Publisher("/q_learning/robot_action", RobotMoveDBToBlock, queue_size=10)
+        self.qmat_pub = rospy.Publisher("q_learning/q_matrix", QMatrix, queue_size=10)
+        self.action_pub = rospy.Publisher("q_learning/robot_action", RobotMoveDBToBlock, queue_size=10)
         # Setup subcriber for rewards
         rospy.Subscriber("/q_learning/reward", QLearningReward, self.reward_received)
+
+        self.manipulator_action_pub = rospy.Publisher(MANIPULATOR_ACTION_TOPIC, ManipulatorAction, queue_size=10)
+        rospy.Subscriber(MANIPULATOR_ACTION_TOPIC, ManipulatorAction, self.manipulator_action_received)
+        # Variable used to track of last publisher ManipulatorAction has been received
+        self.action_confirmation_received = False
         # Sleep for one second to setup subscriber and publishers
         rospy.sleep(1.0)
         self.qmat = np.zeros((self.NUM_STATES, self.NUM_ACTIONS), dtype=int)
@@ -52,9 +59,9 @@ class QLearn():
     def run(self):
         # Converge the matrix
         self.do_qlearn()
-        # Spin to wait for manipulator_action requests
-        rospy.spin()
-    
+        # Execute the path for maximum reward
+        self.execute_path_for_reward()
+
     def get_action_number(self, DB_color, block_number):
         """
         Gives the number representing the action:
@@ -70,10 +77,10 @@ class QLearn():
         return action
     
 
-    def action_num_to_obj(self, action):
+    def action_to_desc(self, action):
         """
-        Takes a number representing an action and returns the
-        RobotMoveDBToBlock object representing it.
+        Takes a number representing an action and returns a tuple 
+        of form (DB_color, block_number) representing it.
         If DB_color not in [self.BLUE, self.GREEN, self.RED] raises a 
         RuntimeError. 
         """
@@ -87,9 +94,8 @@ class QLearn():
         elif DB_color == self.RED:
             color = "red"
         else:
-            raise RuntimeError("action_num_to_obj found invalid DB color!")
-        action_obj = RobotMoveDBToBlock(color, block_num)
-        return action_obj
+            raise RuntimeError("action_to_desc found invalid DB color!")
+        return (color, block_num)
         
 
     def state_num_to_ls(self, state_num):
@@ -215,8 +221,8 @@ class QLearn():
                 rospy.sleep(1)
                 curr_state = 0
                 continue
-
-            action_obj = self.action_num_to_obj(action)
+            (db, block) = self.action_to_desc(action)
+            action_obj = RobotMoveDBToBlock(db, block)
             self.action_pub.publish(action_obj)
             # Sleep to let action process
             rospy.sleep(1.0)
@@ -232,6 +238,43 @@ class QLearn():
             curr_state = next_state
             curr_iter += 1
 
+    def in_final_state(self, state):
+        """
+        Returns True if the state given has all 3 dumbbells at a block,
+        False otherwise.
+        """
+        state_ls = state_num_to_ls(state)
+        return self.ORIGIN not in state_ls
+
+    def execute_path_for_reward(self):
+        """
+        After the QMatrix has converged, this function will send out 
+        actions one at a time on the ManipulatorAction topic, waiting for confirmation
+        that the action has been performed each time before sending the next. 
+        The actions are chosen to maximize the likelihood of a reward based on QMatrix.
+        """
+        curr_state = 0
+        while not self.in_final_state(curr_state):
+            # We have not yet received confirmation for currenet action
+            self.action_confirmation_received = False
+            qvals = self.qmat[curr_state]
+            best_action = 0
+            best_qval = -float('inf')
+            for (action, qval) in enumerate(qvals):
+                if qval > best_qval:
+                    best_action = action
+                    best_qval = qval
+            (db, block) = self.action_to_desc(action)
+            action_obj = ManipulatorAction()
+            action_obj.is_confirmation = False
+            action_obj.block_id = block
+            action_obj.robot_db = db
+            self.manipulator_action_pub.publish(action_obj)
+            # Now wait for response
+            while not self.action_confirmation_received:
+                rospy.sleep(2.0)
+
+
             
     def reward_received(self, data):
         """
@@ -242,6 +285,15 @@ class QLearn():
         # The if check prevents this as only the first one is relevant to the action
         if not self.reward:
             self.reward = data
+
+    def manipulator_action_received(self, data):
+        """
+        Callback for manipulator_action events. 
+        These should only be received when the manipulator/movement code has 
+        completed the last action WE published on this topic.
+        """
+        if data.is_confirmation:
+            self.action_confirmation_received = True
 
     
     def print_qmat(self):
