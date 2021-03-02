@@ -38,13 +38,7 @@ def mask_hue(img, hue):
 
 
 def calc_color_centroid(img, mask):
-    # Code from class meeting 03
     h, w, _ = img.shape
-    # search_top = int(3*h/4)
-    # search_bot = int(3*h/4 + 20)
-    # mask[0:search_top, 0:w] = 0
-    # mask[search_bot:h, 0:w] = 0
-
     M = cv2.moments(mask)
 
     if M['m00'] > 0:
@@ -79,7 +73,7 @@ class VisionController(object):
         self.publishers = self.initialize_publishers()
         self.initialize_subscribers()
 
-        #self.pipeline = keras_ocr.pipeline.Pipeline()
+        self.pipeline = keras_ocr.pipeline.Pipeline(scale=1)
 
     def initialize_publishers(self):
         publishers = {}
@@ -133,11 +127,14 @@ class VisionController(object):
         elif self.current_state == C.VISION_STATE_NUMBER_SEARCH:
             img_cen_msg.target = self.number_search_target
 
-            # prediction_group = self.pipeline.recognize([csv_img])[0]
+            prediction_group = self.pipeline.recognize([csv_img])[0]
 
-            # for word, box in prediction_group:
-            #     if word == self.number_search_target:
-            #         center = calc_box_center(box)
+            for word, box in prediction_group:
+                stripped = word.strip()
+                if stripped == "l":
+                    stripped = "1"
+                if word.strip() == self.number_search_target:
+                    center = calc_box_center(box)
 
         if center is None:
             img_cen_msg.target = C.TARGET_NONE
@@ -151,7 +148,7 @@ class VisionController(object):
 
     def process_action_state(self, action_state):
         self.set_color_search_target(action_state.robot_db)
-        self.set_number_search_target(action_state.block_id)
+        self.set_number_search_target(str(action_state.block_id))
         new_state = action_state.action_state
 
         if new_state == C.ACTION_STATE_IDLE:
