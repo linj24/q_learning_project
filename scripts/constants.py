@@ -5,10 +5,14 @@ CMD_VEL_TOPIC = "cmd_vel"
 SCAN_TOPIC = "scan"
 ODOM_TOPIC = "odom"
 IMG_RAW_TOPIC = "camera/rgb/image_raw"
-IMG_CEN_TOPIC = "q_learning/ImgCen"
-ROBOT_ACTION_TOPIC = "q_learning/RobotMoveDBToBlock"
-Q_MATRIX_TOPIC = "q_learning/QMatrix"
+IMG_CEN_TOPIC = "q_learning/img_cen"
+ROBOT_ACTION_TOPIC = "q_learning/robot_action"
+Q_MATRIX_TOPIC = "q_learning/q_matrix"
 REWARD_TOPIC = "q_learning/reward"
+ACTION_STATE_TOPIC = "q_learning/states/action"
+ARM_STATE_TOPIC = "q_learning/states/arm"
+MOVEMENT_STATE_TOPIC = "q_learning/states/movement"
+VISION_STATE_TOPIC = "q_learning/states/vision"
 QUEUE_SIZE = 10
 
 CENTER_RADIUS = 0.5
@@ -50,15 +54,17 @@ TARGET_NONE = "none"
 COLOR_RED = "red"
 COLOR_GREEN = "green"
 COLOR_BLUE = "blue"
-NUMBER_ONE = "1"
-NUMBER_TWO = "2"
-NUMBER_THREE = "3"
+NUMBER_ONE = 1
+NUMBER_TWO = 2
+NUMBER_THREE = 3
 
 
-ARM_JOINT_GOAL_DOWN = [0]
-ARM_JOINT_GOAL_UP = [1]
-GRIPPER_JOINT_GOAL_OPEN = [0.5, 0.5]
-GRIPPER_JOINT_GOAL_CLOSED = [0.9, 0.9]
+ARM_JOINT_NAMES = ['joint1', 'joint2', 'joint3', 'joint4']
+ARM_JOINT_GOAL_DOWN = [0.000, 0.500, 0.500, -1.000]
+ARM_JOINT_GOAL_UP = [0.000, -1.800, 1.300, -1.200]
+GRIPPER_JOINT_NAMES = ['gripper_link', 'gripper_link_sub']
+GRIPPER_JOINT_GOAL_OPEN = [0.020, 0.020]
+GRIPPER_JOINT_GOAL_CLOSED = [0.010, 0.010]
 
 
 MVMT_THRESH_LIN = 0.2
@@ -77,7 +83,6 @@ SAFE_DISTANCE = 0.7
 DETECTION_LIMIT = 3.5
 FRONT_ANGLE_RANGE = 60
 
-IMG_RAW_UPDATE_RATE = 1
 IMG_CEN_PIXEL_THRESHOLD = 30
 
 LOWER_RED_1 = np.array([0, 50, 50])

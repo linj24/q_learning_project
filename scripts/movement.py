@@ -9,7 +9,7 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
 import constants as C
 from utils import find_angle_offset, find_distance, wrap_bounds
-from q_learning_project.msg import ImgCen
+from q_learning_project.msg import ActionState, ImgCen
 
 
 def calculate_velocity_odom(odom_data: Odometry, target_pose: Pose) -> Twist:
@@ -64,7 +64,7 @@ def calculate_velocity_img_cen(img_cen: ImgCen) -> Twist:
 class MovementController(object):
     
     def __init__(self):
-        #rospy.init_node('q_bot_movement')
+        rospy.init_node('q_bot_movement')
 
         self.publishers = self.initialize_publishers()
         self.initialize_subscribers()
@@ -72,6 +72,8 @@ class MovementController(object):
         self.current_state = C.MOVEMENT_STATE_IDLE
         self.starting_pose = Pose()
         self.last_twist = Twist()
+
+        self.initialized = False
         
         
     def initialize_publishers(self) -> dict:
@@ -83,9 +85,13 @@ class MovementController(object):
 
 
     def initialize_subscribers(self) -> None:
-        rospy.Subscriber(C.ODOM_TOPIC, Pose, self.process_odom)
+        rospy.Subscriber(C.ODOM_TOPIC, Odometry, self.process_odom)
         rospy.Subscriber(C.SCAN_TOPIC, LaserScan, self.process_scan)
         rospy.Subscriber(C.IMG_CEN_TOPIC, ImgCen, self.process_img_cen)
+        rospy.Subscriber(
+            C.ACTION_STATE_TOPIC,
+            ActionState,
+            self.process_action_state)
 
 
     def set_starting_pose(self, pose: Pose) -> None:
@@ -96,7 +102,39 @@ class MovementController(object):
         self.current_state = state
 
 
+    def process_action_state(self, action_state: ActionState) -> None:
+        new_state = action_state.action_state
+
+        if new_state == C.ACTION_STATE_IDLE:
+            self.set_state(C.MOVEMENT_STATE_IDLE)
+
+        elif new_state == C.ACTION_STATE_MOVE_CENTER:
+            self.set_state(C.MOVEMENT_STATE_GO_TO_POSITION)
+
+        elif new_state == C.ACTION_STATE_LOCATE_DUMBBELL:
+            self.set_state(C.MOVEMENT_STATE_FIND_OBJECT)
+
+        elif new_state == C.ACTION_STATE_MOVE_DUMBBELL:
+            self.set_state(C.MOVEMENT_STATE_FOLLOW_OBJECT)
+
+        elif new_state == C.ACTION_STATE_GRAB:
+            self.set_state(C.MOVEMENT_STATE_IDLE)
+
+        elif new_state == C.ACTION_STATE_LOCATE_BLOCK:
+            self.set_state(C.MOVEMENT_STATE_FIND_OBJECT)
+
+        elif new_state == C.ACTION_STATE_MOVE_BLOCK:
+            self.set_state(C.MOVEMENT_STATE_FOLLOW_OBJECT)
+            
+        elif new_state == C.ACTION_STATE_RELEASE:
+            self.set_state(C.MOVEMENT_STATE_IDLE)
+
+
     def process_odom(self, odom_data: Odometry) -> None:
+        if not self.initialized:
+            self.starting_pose = odom_data.pose.pose
+            self.initialized = True
+
         if self.current_state == C.MOVEMENT_STATE_GO_TO_POSITION:
             bot_vel = calculate_velocity_odom(odom_data, self.starting_pose)
             self.publishers[C.CMD_VEL_TOPIC].publish(bot_vel)
@@ -126,4 +164,3 @@ class MovementController(object):
 
     def run(self) -> None:
         rospy.spin()
-

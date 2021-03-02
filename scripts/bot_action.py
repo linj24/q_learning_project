@@ -11,23 +11,24 @@ from arm_manipulation import ArmController
 from movement import MovementController
 from vision import VisionController
 from utils import find_distance
-from q_learning_project.msg import RobotMoveDBToBlock, ImgCen
+from q_learning_project.msg import RobotMoveDBToBlock, ActionState, ImgCen
 import constants as C
 
 
 class ActionController(object):
     
     def __init__(self):
-        #rospy.init_node('q_bot_action')
+        rospy.init_node('q_bot_action')
 
         self.arm_controller = ArmController()
         self.movement_controller = MovementController()
         self.vision_controller = VisionController()
 
+        self.publishers = self.initialize_publishers()
         self.initialize_subscribers()
 
         self.current_state = C.ACTION_STATE_IDLE
-        self.search_target = C.TARGET_NONE
+        self.current_robot_action = RobotMoveDBToBlock()
         self.conditions = {
             "IN_CENTER": True,
             "IN_FRONT_OF_OBJECT": False,
@@ -35,6 +36,14 @@ class ActionController(object):
             "FACING_DUMBBELL": False,
             "FACING_BLOCK": False,
         }
+
+
+    def initialize_publishers(self) -> dict:
+        publishers = {}
+        publishers[C.ACTION_STATE_TOPIC] = rospy.Publisher(
+            C.ACTION_STATE_TOPIC, ActionState, queue_size=C.QUEUE_SIZE
+        )
+        return publishers
 
 
     def initialize_subscribers(self) -> None:
@@ -51,7 +60,7 @@ class ActionController(object):
             self.conditions["IN_CENTER"] = True
         else:
             self.conditions["IN_CENTER"] = False
-        self.update_controller_states(C.ACTION_STATE_MOVE_CENTER)
+        self.update_controller_states(self.get_next_state())
 
 
     def process_scan(self, scan_data: LaserScan) -> None:
@@ -60,34 +69,31 @@ class ActionController(object):
             self.conditions["IN_FRONT_OF_OBJECT"] = True
         else:
             self.conditions["IN_FRONT_OF_OBJECT"] = False
-        self.update_controller_states(C.ACTION_STATE_MOVE_CENTER)
+        self.update_controller_states(self.get_next_state())
 
 
     def process_img_cen(self, img_cen_data: ImgCen) -> None:
         if abs(img_cen_data.center_x) < C.IMG_CEN_PIXEL_THRESHOLD:
-            if self.vision_controller.set_state(C.VISION_STATE_COLOR_SEARCH):
+            if img_cen_data.vision_state == C.VISION_STATE_COLOR_SEARCH:
                 self.conditions["FACING_DUMBBELL"] = True
                 self.conditions["FACING_BLOCK"] = False
-            elif self.vision_controller.set_state(C.VISION_STATE_NUMBER_SEARCH):
+            elif img_cen_data.vision_state == C.VISION_STATE_NUMBER_SEARCH:
                 self.conditions["FACING_DUMBBELL"] = False
                 self.conditions["FACING_BLOCK"] = True
         else:
             self.conditions["FACING_DUMBBELL"] = False
             self.conditions["FACING_BLOCK"] = False
-        self.update_controller_states(C.ACTION_STATE_MOVE_CENTER)
+        self.update_controller_states(self.get_next_state())
         
 
     def process_action(self, action: RobotMoveDBToBlock) -> None:
-        self.vision_controller.set_color_search_target(action.robot_db)
-        self.vision_controller.set_number_search_target(action.block_id)
+        print("Action received")
+        self.current_robot_action = action
         self.update_controller_states(C.ACTION_STATE_MOVE_CENTER)
 
 
     def get_next_state(self) -> str:
-        if self.current_state == C.ACTION_STATE_IDLE:
-            return C.ACTION_STATE_MOVE_CENTER
-
-        elif self.current_state == C.ACTION_STATE_MOVE_CENTER:
+        if self.current_state == C.ACTION_STATE_MOVE_CENTER:
             if (self.conditions["IN_CENTER"] and
                     not self.conditions["HOLDING_DUMBBELL"]):
                 return C.ACTION_STATE_LOCATE_DUMBBELL
@@ -132,6 +138,7 @@ class ActionController(object):
 
 
     def update_controller_states(self, new_state: str) -> None:
+        print("Going from " + self.current_state + " to " + new_state)
         self.current_state = new_state
         if new_state == C.ACTION_STATE_IDLE:
             self.arm_controller.set_state(C.ARM_STATE_IDLE)
@@ -139,19 +146,19 @@ class ActionController(object):
             self.vision_controller.set_state(C.VISION_STATE_IDLE)
 
         elif new_state == C.ACTION_STATE_MOVE_CENTER:
-            self.arm_controller.set_state(C.ARM_STATE_IDLE)
+            self.arm_controller.set_state(C.ARM_STATE_UP)
             self.movement_controller.set_state(C.MOVEMENT_STATE_GO_TO_POSITION)
             self.vision_controller.set_state(C.VISION_STATE_IDLE)
 
         elif new_state == C.ACTION_STATE_LOCATE_DUMBBELL:
-            self.arm_controller.set_state(C.ARM_STATE_DOWN)
+            self.arm_controller.set_state(C.ARM_STATE_UP)
             self.movement_controller.set_state(C.MOVEMENT_STATE_FIND_OBJECT)
             self.vision_controller.set_state(C.VISION_STATE_COLOR_SEARCH)
 
         elif new_state == C.ACTION_STATE_MOVE_DUMBBELL:
             self.arm_controller.set_state(C.ARM_STATE_DOWN)
             self.movement_controller.set_state(C.MOVEMENT_STATE_FOLLOW_OBJECT)
-            self.vision_controller.set_state(C.VISION_STATE_NUMBER_SEARCH)
+            self.vision_controller.set_state(C.VISION_STATE_COLOR_SEARCH)
 
         elif new_state == C.ACTION_STATE_GRAB:
             self.arm_controller.set_state(C.ARM_STATE_GRABBING)
@@ -175,6 +182,4 @@ class ActionController(object):
 
 
     def run(self) -> None:
-        self.movement_controller.run()
-        self.vision_controller.run()
         rospy.spin()
