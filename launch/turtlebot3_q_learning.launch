@@ -1,0 +1,12 @@
+<launch>
+
+  <!-- controller utils -->
+  <include file="$(find turtlebot3_manipulation_moveit_config)/launch/move_group.launch"/>
+
+  <!-- <!node name="qlearn" pkg="q_learning_project" type="qlearn.py" respawn="false" /> -->
+  <node name="q_bot_action" pkg="q_learning_project" type="bot_action.py" respawn="true" />
+  <node name="q_arm" pkg="q_learning_project" type="arm_manipulation.py" respawn="true" />
+  <node name="q_movement" pkg="q_learning_project" type="movement.py" respawn="true" />
+  <node name="q_vision" pkg="q_learning_project" type="vision.py" respawn="true" />
+
+</launch>
