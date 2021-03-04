@@ -29,19 +29,18 @@ class ActionController():
         self.initialized = False
         self.conditions = {
             "IN_CENTER": True,
-            "FACING_UNKNOWN_OBJECT": False,
-            # If IN_FRONT_OF_CLOSE_OBJECT is true so will FACING_UNKNOWN_OBJECT, but
+            "FACING_OBJECT": False,
+            # If IN_FRONT_OF_CLOSE_OBJECT is true so will FACING_OBJECT, but
             # the reverse is only true if the object we're facing is close
             "IN_FRONT_OF_CLOSE_OBJECT": False,
+            "HAS_SPACE_IN_FRONT": False,
             "HOLDING_DUMBBELL": False,
             # The below true will only be set when we know what the object being faced is
             "FACING_TARGET": False,
             "FACING_SCANNED_OBJECT": False,
-            "FACING_MATCHED_OBJECT": False,
             "WAITING_FOR_IMG": False,
             "NN_RESPONSE_RECEIVED": False,
             "CENTERED": False,
-            "HAS_FACED_NOTHING_SINCE_NN_RESPONSE": True
         }
 
         self.initialize_publishers()
@@ -112,11 +111,12 @@ class ActionController():
         Receive a scan reading and check if the robot is directly in front of an object.
         """
         front_distance = min(
-            np.min(scan_data.ranges[:C.FRONT_ANGLE_RANGE//2]),
-            np.min(scan_data.ranges[-C.FRONT_ANGLE_RANGE//2:]))
+            np.amin(scan_data.ranges[:C.FRONT_ANGLE_RANGE//2]),
+            np.amin(scan_data.ranges[-C.FRONT_ANGLE_RANGE//2:]))
 
-        self.conditions["FACING_UNKNOWN_OBJECT"] = front_distance < float(
-            'inf')
+        self.conditions["FACING_OBJECT"] = not np.isinf(front_distance)
+        if not self.conditions["FACING_OBJECT"]:
+            self.conditions["FACING_SCANNED_OBJECT"] = False
         # x is defined just to make the writing of a large boolean less ugly
         # It is meant to denote if we have faced nothing since last NN response
         # This is needed in the locating object state because right after
@@ -126,16 +126,27 @@ class ActionController():
 
         # We must either be facing nothing now, or have already set the variable to False
         # in the past
-        x = not self.conditions["FACING_UNKNOWN_OBJECT"]
-        x = x or self.conditions["HAS_FACED_NOTHING_SINCE_NN_RESPONSE"]
-        # We must also not have an unprocessed NN response
-        # in which case we would be facing an object so we would not have
-        # faced nothing since last NN response
-        x = x and not self.conditions["NN_RESPONSE_RECEIVED"]
-        self.conditions["HAS_FACED_NOTHING_SINCE_NN_RESPONSE"] = x
+        # x = not self.conditions["FACING_OBJECT"]
+        # print('x1', x)
+        # x = x or self.conditions["HAS_FACED_NOTHING_SINCE_NN_RESPONSE"]
+        # print('x2', x)
+        # print(self.conditions["NN_RESPONSE_RECEIVED"])
+        # # We must also not have an unprocessed NN response
+        # # in which case we would be facing an object so we would not have
+        # # faced nothing since last NN response
+        # # x = x or
+        # print('x3', x)
+        # self.conditions["HAS_FACED_NOTHING_SINCE_NN_RESPONSE"] = x
+        # print("State: ", self.current_state)
+        # print("Conditions:", self.conditions)
         # centered is only used once we know we are facing an unknown object period
-        self.conditions["CENTERED"] = is_centered(scan_data)
-        self.conditions["IN_FRONT_OF_CLOSE_OBJECT"] = front_distance < C.SAFE_DISTANCE
+        self.conditions["CENTERED"] = is_centered(
+            scan_data, C.FRONT_ANGLE_RANGE)
+        if self.current_state == C.ACTION_STATE_MOVE_BLOCK or self.current_state == C.ACTION_STATE_RELEASE:
+            self.conditions["IN_FRONT_OF_CLOSE_OBJECT"] = front_distance < C.SAFE_DISTANCE_RELEASE
+        else:
+            self.conditions["IN_FRONT_OF_CLOSE_OBJECT"] = front_distance < C.SAFE_DISTANCE_GRAB
+        self.conditions["HAS_SPACE_IN_FRONT"] = front_distance > C.BACK_AWAY_DISTANCE
 
         self.update_controller_states(self.get_next_state())
 
@@ -143,12 +154,14 @@ class ActionController():
         """
         Receive an image center and check if the robot is facing an object.
         """
-        self.conditions["NN_RESPONSE_RECEIVED"] = True
-        if (img_cen_data.target != C.TARGET_NONE and
-                abs(img_cen_data.center_x) < C.IMG_CEN_PIXEL_THRESHOLD):
-            if (img_cen_data.vision_state == C.VISION_STATE_COLOR_SEARCH or
-                    img_cen_data.vision_state == C.VISION_STATE_NUMBER_SEARCH):
-                self.conditions["FACING_TARGET"] = True
+        self.conditions["FACING_SCANNED_OBJECT"] = True
+        if (img_cen_data.vision_state != C.VISION_STATE_IDLE and
+            img_cen_data.target != C.TARGET_NONE and
+            ((img_cen_data.vision_state == C.VISION_STATE_COLOR_SEARCH and
+              abs(img_cen_data.center_x) < C.IMG_CEN_COLOR_PIXEL_THRESHOLD) or
+                (img_cen_data.vision_state == C.VISION_STATE_NUMBER_SEARCH and
+                 abs(img_cen_data.center_x) < C.IMG_CEN_NUMBER_PIXEL_THRESHOLD))):
+            self.conditions["FACING_TARGET"] = True
         else:
             self.conditions["FACING_TARGET"] = False
         self.update_controller_states(self.get_next_state())
@@ -182,8 +195,8 @@ class ActionController():
                 return C.ACTION_STATE_LOCATE_BLOCK
 
         elif self.current_state == C.ACTION_STATE_LOCATE_DUMBBELL:
-            if self.conditions["FACING_UNKNOWN_OBJECT"] and \
-                    self.conditions["HAS_FACED_NOTHING_SINCE_NN_RESPONSE"]:
+            if (self.conditions["FACING_OBJECT"] and
+                    not self.conditions["FACING_SCANNED_OBJECT"]):
                 if self.conditions["CENTERED"]:
                     return C.ACTION_STATE_WAIT_FOR_COLOR_IMG
                 else:
@@ -194,8 +207,7 @@ class ActionController():
                 return C.ACTION_STATE_WAIT_FOR_COLOR_IMG
 
         elif self.current_state == C.ACTION_STATE_WAIT_FOR_COLOR_IMG:
-            if self.conditions["NN_RESPONSE_RECEIVED"]:
-                self.conditions["NN_RESPONSE_RECEIVED"] = False
+            if self.conditions["FACING_SCANNED_OBJECT"]:
                 if self.conditions["FACING_TARGET"]:
                     return C.ACTION_STATE_MOVE_DUMBBELL
                 else:
@@ -214,8 +226,8 @@ class ActionController():
                 return C.ACTION_STATE_MOVE_CENTER
 
         elif self.current_state == C.ACTION_STATE_LOCATE_BLOCK:
-            if self.conditions["FACING_UNKNOWN_OBJECT"] and \
-                    self.conditions["HAS_FACED_NOTHING_SINCE_NN_RESPONSE"]:
+            if (self.conditions["FACING_OBJECT"] and
+                    not self.conditions["FACING_SCANNED_OBJECT"]):
                 if self.conditions["CENTERED"]:
                     return C.ACTION_STATE_WAIT_FOR_NUMBER_IMG
                 else:
@@ -226,8 +238,7 @@ class ActionController():
                 return C.ACTION_STATE_WAIT_FOR_NUMBER_IMG
 
         elif self.current_state == C.ACTION_STATE_WAIT_FOR_NUMBER_IMG:
-            if self.conditions["NN_RESPONSE_RECEIVED"]:
-                self.conditions["NN_RESPONSE_RECEIVED"] = False
+            if self.conditions["FACING_SCANNED_OBJECT"]:
                 if self.conditions["FACING_TARGET"]:
                     return C.ACTION_STATE_MOVE_BLOCK
                 else:
@@ -243,6 +254,10 @@ class ActionController():
 
         elif self.current_state == C.ACTION_STATE_RELEASE:
             if not self.conditions["HOLDING_DUMBBELL"]:
+                return C.ACTION_STATE_BACK_AWAY
+
+        elif self.current_state == C.ACTION_STATE_BACK_AWAY:
+            if self.conditions["HAS_SPACE_IN_FRONT"]:
                 confirmation = self.create_manipulator_action_msg()
                 self.publishers[C.MANIPULATOR_ACTION_TOPIC].publish(
                     confirmation)

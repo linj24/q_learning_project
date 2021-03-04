@@ -59,16 +59,18 @@ def calc_color_centroid(img, mask):
     return None
 
 
-def calc_box_center(box):
+def calc_box_center(img, box):
     """
     Calculate the center of a box from its coordinates.
     """
+    height, width, _ = img.shape
     box_center_x = 0
     box_center_y = 0
-    for box_corner_y, box_corner_x in box:
+    for box_corner_x, box_corner_y in box:
         box_center_x = box_center_x + box_corner_x
         box_center_y = box_center_y + box_corner_y
-    box_center = (box_center_x / 4, box_center_y / 4)
+    box_center = ((box_center_x/4) - (width//2),
+                  (box_center_y/4) - (height//2))
 
     return box_center
 
@@ -169,7 +171,7 @@ class VisionController():
                 if stripped == "l":
                     stripped = "1"
                 if word.strip() == self.number_search_target:
-                    center = calc_box_center(box)
+                    center = calc_box_center(csv_img, box)
 
         if center is None:
             img_cen_msg.target = C.TARGET_NONE
@@ -225,6 +227,9 @@ class VisionController():
         elif new_state == C.ACTION_STATE_RELEASE:
             self.set_state(C.VISION_STATE_IDLE)
 
+        elif new_state == C.ACTION_STATE_BACK_AWAY:
+            self.set_state(C.VISION_STATE_IDLE)
+
     def process_image(self, img):
         """
         Receive an image, calculate an object's location in pixels,
@@ -233,7 +238,8 @@ class VisionController():
         if self.current_state != C.VISION_STATE_IDLE:
             csv_img = self.bridge.imgmsg_to_cv2(img, desired_encoding='bgr8')
             img_cen_msg = self.create_img_cen_msg(csv_img)
-            self.publishers[C.IMG_CEN_TOPIC].publish(img_cen_msg)
+            if img_cen_msg.vision_state != C.VISION_STATE_IDLE:
+                self.publishers[C.IMG_CEN_TOPIC].publish(img_cen_msg)
 
     def run(self):
         """

@@ -37,7 +37,12 @@ def find_angle_offset(bot_pose: Pose, target_pose: Pose) -> float:
     target_angle = np.arctan2(
         target_pose.position.y - bot_pose.position.y,
         target_pose.position.x - bot_pose.position.x)
-    return target_angle - bot_yaw
+    offset = target_angle - bot_yaw
+    if offset > np.pi:
+        offset = offset - np.pi
+    elif offset < -np.pi:
+        offset = offset + np.pi
+    return offset
 
 
 def find_distance_offset(bot_pose: Pose, target_pose: Pose) -> float:
@@ -102,14 +107,14 @@ def compute_360_center(start_end: tuple) -> int:
         return (start + end) // 2
 
 
-def get_closest_distance_and_angle(scan_data):
+def get_closest_distance_and_angle(scan_data, front_angle_range):
     """
     Considering only angles that are in front of the robot (in C.FRONT_ANGLE_RANGE),
     return the shortest distance measurement and the corresponding angle.
     """
     scan_ranges = np.array(scan_data.ranges)
     # Set all things not in FRONT_ANGLE_RANGE = infinity
-    scan_bounds = wrap_bounds(0, 360, C.FRONT_ANGLE_RANGE)
+    scan_bounds = wrap_bounds(0, 360, front_angle_range)
     scan_ranges[np.arange(
         scan_bounds[1], scan_bounds[0]).astype(int)] = np.inf
 
@@ -119,16 +124,20 @@ def get_closest_distance_and_angle(scan_data):
     return (distance_to_object, angle_to_object)
 
 
-def is_centered(scan_data):
+def is_centered(scan_data, front_angle_range):
     """
     Considering only angles that are in front of the robot (in C.FRONT_ANGLE_RANGE)
     returns True if the closest object is almost directly in front of the object
     (within C.CENTER_ANGLE_RANGE of straight ahead of the robot). False otherwise.
     """
-    _, angle_to_object = get_closest_distance_and_angle(scan_data)
+    distance_to_object, angle_to_object = get_closest_distance_and_angle(
+        scan_data, front_angle_range)
 
-    return (angle_to_object < C.CENTER_ANGLE_RANGE
-            or angle_to_object > 360 - C.CENTER_ANGLE_RANGE)
+    if np.isinf(distance_to_object):
+        return False
+
+    return (angle_to_object < (C.CENTER_ANGLE_RANGE // 2)
+            or angle_to_object > 360 - (C.CENTER_ANGLE_RANGE // 2))
 
 
 def round_magnitude(number_to_round, magnitude):

@@ -134,7 +134,7 @@ class ArmController():
             self.set_state(C.ARM_STATE_IDLE)
 
         elif new_state == C.ACTION_STATE_MOVE_CENTER:
-            self.set_state(C.ARM_STATE_UP)
+            pass
 
         elif new_state == C.ACTION_STATE_LOCATE_DUMBBELL:
             self.set_state(C.ARM_STATE_DOWN)
@@ -165,6 +165,9 @@ class ArmController():
 
         elif new_state == C.ACTION_STATE_RELEASE:
             self.set_state(C.ARM_STATE_RELEASING)
+
+        elif new_state == C.ACTION_STATE_BACK_AWAY:
+            self.set_state(C.ARM_STATE_DOWN)
 
     def run(self) -> None:
         """
