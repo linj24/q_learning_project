@@ -70,10 +70,14 @@ We began by initializing a Q matrix storing an entry for every state-action comb
 
 ## Robot perception description: Describe how you accomplished each of the following components of the perception elements of this project in 1-3 sentences, any online sources of information/code that helped you to recognize the objects, and also describe what functions / sections of the code executed each of these components (1-3 sentences per function / portion of code):
 ### Identifying the locations and identities of each of the colored dumbbells
+`create_img_cen_msg (vision.py)` - We used the code from class meeting 03 to detect the centroid of a colored portion of an image. Upon receiving an action command to move a certain dumbbell to a certain block, we would apply a mask to the robot's camera feed in order to find the color centroids. Our bot rotates until it's facing a potential target, then stops and checks the camera feed to see if the target dumbbell is in the center of the image.
 ### Identifying the locations and identities of each of the numbered blocks
+`create_img_cen_msg (vision.py)` - We used the keras-ocr neural network in order to identify digits on the side of blocks. Upon receiving an action command to move a certain dumbbell to a certain block, we would have the bot rotate until it sees something right in front of it via laser scan. We would then process a raw camera image by feeding it into the neural network, which will give us the locations of identified characters. If the identified characters match the number of the block in the action command, we've found the appropriate block.
 ## Robot manipulation and movement: Describe how you accomplished each of the following components of the robot manipulation and movement elements of this project in 1-3 sentences, and also describe what functions / sections of the code executed each of these components (1-3 sentences per function / portion of code):
 ### Moving to the right spot in order to pick up a dumbbell
+`movement.py` - We use callback functions and a state system to identify when the robot is facing a dumbbell and is right in front of it. When the robot sees a colored dumbbell in the center of its field of view, it uses proportional control to approach the dummbbell  for both linear and angular velocity. This means that the bot is slower and more accurate as it gets closer to the dumbbell, which allows for precise movements.
 ### Picking up the dumbbell
+
 ### Moving to the desired destination (numbered block) with the dumbbell
 ### Putting the dumbbell back down at the desired destination
 ## Challenges (1 paragraph): Describe the challenges you faced and how you overcame them.
