@@ -1,17 +1,24 @@
 #!/usr/bin/env python3
 
+"""
+Controller object handling all image processing based on the robot state.
+"""
+
 import rospy
 import cv2
 import cv_bridge
 import numpy as np
 from sensor_msgs.msg import Image
-from q_learning_project.msg import ActionState, ImgCen
-from utils import wrap_bounds
 import constants as C
+from utils import wrap_bounds
 import keras_ocr
+from q_learning_project.msg import ActionState, ImgCen
 
 
 def mask_hue(img, hue):
+    """
+    Create a mask for an image that only includes values in a certain hue range.
+    """
     hue_lower_bound, hue_upper_bound = wrap_bounds(hue, 180, C.HUE_RANGE)
 
     if hue_lower_bound > hue_upper_bound:
@@ -38,18 +45,24 @@ def mask_hue(img, hue):
 
 
 def calc_color_centroid(img, mask):
-    h, w, _ = img.shape
-    M = cv2.moments(mask)
+    """
+    Calculate the centroid of a masked image.
+    """
+    height, width, _ = img.shape
+    moments = cv2.moments(mask)
 
-    if M['m00'] > 0:
-        cx = int(M['m10']/M['m00'])
-        cy = int(M['m01']/M['m00'])
-        return (cx - (w//2), cy - (h//2))
+    if moments['m00'] > 0:
+        cen_x = int(moments['m10']/moments['m00'])
+        cen_y = int(moments['m01']/moments['m00'])
+        return (cen_x - (width//2), cen_y - (height//2))
 
     return None
 
 
 def calc_box_center(box):
+    """
+    Calculate the center of a box from its coordinates.
+    """
     box_center_x = 0
     box_center_y = 0
     for box_corner_y, box_corner_x in box:
@@ -60,7 +73,10 @@ def calc_box_center(box):
     return box_center
 
 
-class VisionController(object):
+class VisionController():
+    """
+    Tracks the robot's current state and processes raw images.
+    """
 
     def __init__(self):
         rospy.init_node('q_bot_vision')
@@ -76,6 +92,9 @@ class VisionController(object):
         self.pipeline = keras_ocr.pipeline.Pipeline(scale=1)
 
     def initialize_publishers(self):
+        """
+        Initialize all the publishers this node will use.
+        """
         publishers = {}
 
         publishers[C.IMG_CEN_TOPIC] = rospy.Publisher(
@@ -85,6 +104,9 @@ class VisionController(object):
         return publishers
 
     def initialize_subscribers(self):
+        """
+        Initialize all the subscribers this node will use.
+        """
         rospy.Subscriber(C.IMG_RAW_TOPIC, Image, self.process_image)
         rospy.Subscriber(
             C.ACTION_STATE_TOPIC,
@@ -92,25 +114,38 @@ class VisionController(object):
             self.process_action_state)
 
     def set_state(self, new_state):
+        """
+        Set the current vision state.
+        """
         self.current_state = new_state
 
     def set_color_search_target(self, search_target):
+        """
+        Set the current color search target.
+        """
         self.color_search_target = search_target
 
     def set_number_search_target(self, search_target):
+        """
+        Set the current number search target.
+        """
         self.number_search_target = search_target
 
     def color_state_to_hue(self):
+        """
+        Convert a color string to an HSV hue.
+        """
         if self.color_search_target == C.COLOR_RED:
             return C.RED_HUE
         elif self.color_search_target == C.COLOR_GREEN:
             return C.GREEN_HUE
         elif self.color_search_target == C.COLOR_BLUE:
             return C.BLUE_HUE
-        else:
-            return
 
-    def create_ImgCen_msg(self, csv_img):
+    def create_img_cen_msg(self, csv_img):
+        """
+        Create an ImgCen message from an image based on the current vision state.
+        """
         img_cen_msg = ImgCen()
         img_cen_msg.vision_state = self.current_state
         center = None
@@ -147,6 +182,9 @@ class VisionController(object):
         return img_cen_msg
 
     def process_action_state(self, action_state):
+        """
+        Receive an action state and update the vision state accordingly.
+        """
         self.set_color_search_target(action_state.robot_db)
         self.set_number_search_target(str(action_state.block_id))
         new_state = action_state.action_state
@@ -158,30 +196,49 @@ class VisionController(object):
             self.set_state(C.VISION_STATE_IDLE)
 
         elif new_state == C.ACTION_STATE_LOCATE_DUMBBELL:
+            self.set_state(C.VISION_STATE_IDLE)
+
+        elif new_state == C.ACTION_STATE_CENTER_DUMBBELL:
+            self.set_state(C.VISION_STATE_IDLE)
+
+        elif new_state == C.ACTION_STATE_WAIT_FOR_COLOR_IMG:
             self.set_state(C.VISION_STATE_COLOR_SEARCH)
 
         elif new_state == C.ACTION_STATE_MOVE_DUMBBELL:
-            self.set_state(C.VISION_STATE_COLOR_SEARCH)
+            self.set_state(C.VISION_STATE_IDLE)
 
         elif new_state == C.ACTION_STATE_GRAB:
             self.set_state(C.VISION_STATE_IDLE)
 
         elif new_state == C.ACTION_STATE_LOCATE_BLOCK:
+            self.set_state(C.VISION_STATE_IDLE)
+
+        elif new_state == C.ACTION_STATE_CENTER_BLOCK:
+            self.set_state(C.VISION_STATE_IDLE)
+
+        elif new_state == C.ACTION_STATE_WAIT_FOR_NUMBER_IMG:
             self.set_state(C.VISION_STATE_NUMBER_SEARCH)
 
         elif new_state == C.ACTION_STATE_MOVE_BLOCK:
-            self.set_state(C.VISION_STATE_NUMBER_SEARCH)
+            self.set_state(C.VISION_STATE_IDLE)
 
         elif new_state == C.ACTION_STATE_RELEASE:
             self.set_state(C.VISION_STATE_IDLE)
 
     def process_image(self, img):
+        """
+        Receive an image, calculate an object's location in pixels,
+        and notify the action controller.
+        """
         if self.current_state != C.VISION_STATE_IDLE:
             csv_img = self.bridge.imgmsg_to_cv2(img, desired_encoding='bgr8')
-            img_cen_msg = self.create_ImgCen_msg(csv_img)
+            img_cen_msg = self.create_img_cen_msg(csv_img)
             self.publishers[C.IMG_CEN_TOPIC].publish(img_cen_msg)
 
     def run(self):
+        """
+        Listen for incoming messages.
+        """
         rospy.spin()
 
 
