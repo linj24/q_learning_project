@@ -6,7 +6,7 @@ A node used to test modules by publishing messages.
 
 import rospy
 import constants as C
-from q_learning_project.msg import ActionState, ManipulatorAction
+from q_learning_project.msg import ManipulatorAction, ActionState
 
 if __name__ == "__main__":
     rospy.init_node('q_bot_tester')
@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
     action = ManipulatorAction()
     action.is_confirmation = False
-    action.robot_db = "red"
+    action.robot_db = "blue"
     action.block_id = 3
 
     # publisher = rospy.Publisher(
@@ -27,8 +27,9 @@ if __name__ == "__main__":
     # rospy.sleep(1)
 
     # action = ActionState()
-    # action.action_state = C.ACTION_STATE_MOVE_DUMBBELL
+    # action.action_state = C.ACTION_STATE_MOVE_CENTER
     # action.robot_db = "red"
     # action.block_id = 1
+
     publisher.publish(action)
     print("Published")

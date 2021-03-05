@@ -34,14 +34,19 @@ def find_angle_offset(bot_pose: Pose, target_pose: Pose) -> float:
     Find the relative angle from one pose to a target pose.
     """
     bot_yaw = yaw_from_quaternion(bot_pose.orientation)
+    if bot_yaw < 0:
+        bot_yaw = bot_yaw + (2 * np.pi)
     target_angle = np.arctan2(
         target_pose.position.y - bot_pose.position.y,
         target_pose.position.x - bot_pose.position.x)
+    if target_angle < 0:
+        target_angle = target_angle + (2 * np.pi)
     offset = target_angle - bot_yaw
-    if offset > np.pi:
-        offset = offset - np.pi
-    elif offset < -np.pi:
-        offset = offset + np.pi
+    if (offset > np.pi):
+        offset = offset - (2 * np.pi)
+    elif (offset < -np.pi):
+        offset = offset + (2 * np.pi)
+
     return offset
 
 
@@ -95,12 +100,10 @@ def find_objects_in_scan(scan_data: LaserScan) -> list:
     return ranges
 
 
-def compute_360_center(start_end: tuple) -> int:
+def compute_360_center(start: int, end: int) -> int:
     """
     Compute the center of two angles in degrees.
     """
-    start = start_end[0]
-    end = start_end[1]
     if start < end:
         return ((start + end + 360) // 2) % 360
     else:
@@ -124,20 +127,88 @@ def get_closest_distance_and_angle(scan_data, front_angle_range):
     return (distance_to_object, angle_to_object)
 
 
+def get_block_face_center_distance_and_angle(scan_data, front_angle_range, side):
+    """
+    Considering only angles that are in front of the robot, distinguish between
+    two faces of a cube and find the center of the left or right face.
+    """
+    closest_distance, closest_angle = get_closest_distance_and_angle(
+        scan_data, front_angle_range)
+    scan_ranges = np.array(scan_data.ranges)
+
+    if side == C.TURN_LEFT:
+        angles_to_check = range(closest_angle, front_angle_range)
+    elif side == C.TURN_RIGHT:
+        angles_to_check = range(closest_angle, -front_angle_range, -1)
+    else:
+        return (closest_distance, closest_angle)
+
+    furthest_scan_angle = closest_angle
+    if closest_angle < front_angle_range or closest_angle > ((-front_angle_range) % 360):
+        for angle in angles_to_check:
+            if not np.isinf(scan_ranges[angle]):
+                furthest_scan_angle = angle % 360
+
+        if side == C.TURN_RIGHT:
+            center_angle = compute_360_center(
+                closest_angle, furthest_scan_angle)
+        elif side == C.TURN_LEFT:
+            center_angle = compute_360_center(
+                furthest_scan_angle, closest_angle)
+
+        return (scan_ranges[center_angle], center_angle)
+
+    else:
+        return (closest_distance, closest_angle)
+
+
+def find_object_angle_range(scan_data, front_angle_range):
+    _, closest_angle = get_closest_distance_and_angle(
+        scan_data, front_angle_range)
+
+    scan_ranges = np.array(scan_data.ranges)
+
+    left_angles_to_check = range(closest_angle, front_angle_range)
+    right_angles_to_check = range(closest_angle, -front_angle_range, -1)
+
+    leftmost_angle = closest_angle
+    rightmost_angle = closest_angle
+
+    for angle in left_angles_to_check:
+        if not np.isinf(scan_ranges[angle]):
+            leftmost_angle = angle % 360
+
+    for angle in right_angles_to_check:
+        if not np.isinf(scan_ranges[angle]):
+            rightmost_angle = angle % 360
+
+    return (leftmost_angle, rightmost_angle)
+
+
 def is_centered(scan_data, front_angle_range):
     """
     Considering only angles that are in front of the robot (in C.FRONT_ANGLE_RANGE)
     returns True if the closest object is almost directly in front of the object
     (within C.CENTER_ANGLE_RANGE of straight ahead of the robot). False otherwise.
     """
-    distance_to_object, angle_to_object = get_closest_distance_and_angle(
+    _, closest_angle = get_closest_distance_and_angle(
         scan_data, front_angle_range)
 
-    if np.isinf(distance_to_object):
-        return False
+    object_bounds = find_object_angle_range(scan_data, front_angle_range)
 
-    return (angle_to_object < (C.CENTER_ANGLE_RANGE // 2)
-            or angle_to_object > 360 - (C.CENTER_ANGLE_RANGE // 2))
+    if not np.isinf(scan_data.ranges[0]):
+        if ((closest_angle != object_bounds[0] and
+             closest_angle != object_bounds[1]) or
+                object_bounds[0] == object_bounds[1]):
+            return True
+        else:
+            scan_ranges = np.array(scan_data.ranges)
+            scan_ranges[np.arange(C.CENTER_ANGLE_RANGE //
+                                  2, -C.CENTER_ANGLE_RANGE // 2).astype(int)] = 0
+            if np.isinf(np.amax(scan_ranges)):
+                return False
+            else:
+                return True
 
 
 def round_magnitude(number_to_round, magnitude):

@@ -26,6 +26,7 @@ class ActionController():
         self.current_state = C.ACTION_STATE_IDLE
         self.starting_pose = Pose()
         self.current_robot_action = RobotMoveDBToBlock()
+        self.current_yaw = 0
         self.initialized = False
         self.conditions = {
             "IN_CENTER": True,
@@ -117,32 +118,10 @@ class ActionController():
         self.conditions["FACING_OBJECT"] = not np.isinf(front_distance)
         if not self.conditions["FACING_OBJECT"]:
             self.conditions["FACING_SCANNED_OBJECT"] = False
-        # x is defined just to make the writing of a large boolean less ugly
-        # It is meant to denote if we have faced nothing since last NN response
-        # This is needed in the locating object state because right after
-        # processing a NN response we are still facing that object but don't want to
-        # process the current image, which is technically still facing that object,
-        # until we have moved past it (faced nothing)
-
-        # We must either be facing nothing now, or have already set the variable to False
-        # in the past
-        # x = not self.conditions["FACING_OBJECT"]
-        # print('x1', x)
-        # x = x or self.conditions["HAS_FACED_NOTHING_SINCE_NN_RESPONSE"]
-        # print('x2', x)
-        # print(self.conditions["NN_RESPONSE_RECEIVED"])
-        # # We must also not have an unprocessed NN response
-        # # in which case we would be facing an object so we would not have
-        # # faced nothing since last NN response
-        # # x = x or
-        # print('x3', x)
-        # self.conditions["HAS_FACED_NOTHING_SINCE_NN_RESPONSE"] = x
-        # print("State: ", self.current_state)
-        # print("Conditions:", self.conditions)
-        # centered is only used once we know we are facing an unknown object period
         self.conditions["CENTERED"] = is_centered(
             scan_data, C.FRONT_ANGLE_RANGE)
-        if self.current_state == C.ACTION_STATE_MOVE_BLOCK or self.current_state == C.ACTION_STATE_RELEASE:
+        if (self.current_state == C.ACTION_STATE_MOVE_BLOCK or
+                self.current_state == C.ACTION_STATE_RELEASE):
             self.conditions["IN_FRONT_OF_CLOSE_OBJECT"] = front_distance < C.SAFE_DISTANCE_RELEASE
         else:
             self.conditions["IN_FRONT_OF_CLOSE_OBJECT"] = front_distance < C.SAFE_DISTANCE_GRAB

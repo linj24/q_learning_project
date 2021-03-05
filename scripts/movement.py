@@ -10,8 +10,9 @@ from geometry_msgs.msg import Pose, Twist
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
 import constants as C
-from utils import (find_angle_offset, find_distance,
-                   get_closest_distance_and_angle, round_magnitude)
+from utils import (yaw_from_quaternion, find_angle_offset, find_distance,
+                   get_closest_distance_and_angle,
+                   get_block_face_center_distance_and_angle, round_magnitude)
 from q_learning_project.msg import ActionState, ImgCen
 
 
@@ -27,6 +28,7 @@ class MovementController():
         self.starting_pose = Pose()
         self.last_twist = Twist()
         self.search_direction = C.TURN_LEFT
+        self.current_yaw = 0
         self.initialized = False
 
         self.publishers = self.initialize_publishers()
@@ -86,8 +88,15 @@ class MovementController():
         """
         bot_vel = Twist()
 
-        distance_to_object, angle_to_object = get_closest_distance_and_angle(
-            scan_data, front_angle_range)
+        if (int(np.rad2deg(self.current_yaw)) % 360) in C.RIGHT_BLOCK_ANGLE_RANGE:
+            distance_to_object, angle_to_object = get_block_face_center_distance_and_angle(
+                scan_data, front_angle_range, C.TURN_RIGHT)
+        elif (int(np.rad2deg(self.current_yaw)) % 360) in C.LEFT_BLOCK_ANGLE_RANGE:
+            distance_to_object, angle_to_object = get_block_face_center_distance_and_angle(
+                scan_data, front_angle_range, C.TURN_LEFT)
+        else:
+            distance_to_object, angle_to_object = get_closest_distance_and_angle(
+                scan_data, front_angle_range)
 
         if angle_to_object > 180:
             angle_to_object = angle_to_object - 360
@@ -158,6 +167,8 @@ class MovementController():
             self.starting_pose = odom_data.pose.pose
             self.initialized = True
         else:
+            self.current_yaw = yaw_from_quaternion(
+                odom_data.pose.pose.orientation)
             if self.current_state == C.MOVEMENT_STATE_GO_TO_POSITION:
                 bot_vel = self.calculate_velocity_odom(
                     odom_data)
