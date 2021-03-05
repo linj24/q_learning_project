@@ -18,8 +18,8 @@ if __name__ == "__main__":
 
     action = ManipulatorAction()
     action.is_confirmation = False
-    action.robot_db = "blue"
-    action.block_id = 3
+    action.robot_db = "red"
+    action.block_id = 2
 
     # publisher = rospy.Publisher(
     #     C.ACTION_STATE_TOPIC, ActionState, queue_size=10, latch=True)
