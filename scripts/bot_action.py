@@ -26,22 +26,22 @@ class ActionController():
         self.current_state = C.ACTION_STATE_IDLE
         self.starting_pose = Pose()
         self.current_robot_action = RobotMoveDBToBlock()
+        self.current_yaw = 0
         self.initialized = False
+
+        # The action controller constantly updates this set of conditions to
+        # determine what state it should be in
         self.conditions = {
             "IN_CENTER": True,
-            "FACING_UNKNOWN_OBJECT": False,
-            # If IN_FRONT_OF_CLOSE_OBJECT is true so will FACING_UNKNOWN_OBJECT, but
-            # the reverse is only true if the object we're facing is close
+            "FACING_OBJECT": False,
             "IN_FRONT_OF_CLOSE_OBJECT": False,
+            "HAS_SPACE_IN_FRONT": False,
             "HOLDING_DUMBBELL": False,
-            # The below true will only be set when we know what the object being faced is
             "FACING_TARGET": False,
             "FACING_SCANNED_OBJECT": False,
-            "FACING_MATCHED_OBJECT": False,
             "WAITING_FOR_IMG": False,
             "NN_RESPONSE_RECEIVED": False,
             "CENTERED": False,
-            "HAS_FACED_NOTHING_SINCE_NN_RESPONSE": True
         }
 
         self.initialize_publishers()
@@ -96,9 +96,12 @@ class ActionController():
         Receive an odometry reading and check if the robot is in the center of the map.
         """
         if not self.initialized:
+            # Set the starting pose when the bot first spawns in
             self.starting_pose = odom_data.pose.pose
             self.initialized = True
         else:
+            # If the starting pose exists, check whether the bot is within
+            # a certain radius of the starting position
             distance = find_distance(
                 self.starting_pose, odom_data.pose.pose)
             if distance < C.CENTER_RADIUS:
@@ -111,31 +114,35 @@ class ActionController():
         """
         Receive a scan reading and check if the robot is directly in front of an object.
         """
+        # Define the bot to be facing an object if it can detect one within a
+        # certain frontal radius
         front_distance = min(
-            np.min(scan_data.ranges[:C.FRONT_ANGLE_RANGE//2]),
-            np.min(scan_data.ranges[-C.FRONT_ANGLE_RANGE//2:]))
+            np.amin(scan_data.ranges[:C.FRONT_ANGLE_RANGE//2]),
+            np.amin(scan_data.ranges[-C.FRONT_ANGLE_RANGE//2:]))
 
-        self.conditions["FACING_UNKNOWN_OBJECT"] = front_distance < float(
-            'inf')
-        # x is defined just to make the writing of a large boolean less ugly
-        # It is meant to denote if we have faced nothing since last NN response
-        # This is needed in the locating object state because right after
-        # processing a NN response we are still facing that object but don't want to
-        # process the current image, which is technically still facing that object,
-        # until we have moved past it (faced nothing)
+        self.conditions["FACING_OBJECT"] = not np.isinf(front_distance)
 
-        # We must either be facing nothing now, or have already set the variable to False
-        # in the past
-        x = not self.conditions["FACING_UNKNOWN_OBJECT"]
-        x = x or self.conditions["HAS_FACED_NOTHING_SINCE_NN_RESPONSE"]
-        # We must also not have an unprocessed NN response
-        # in which case we would be facing an object so we would not have
-        # faced nothing since last NN response
-        x = x and not self.conditions["NN_RESPONSE_RECEIVED"]
-        self.conditions["HAS_FACED_NOTHING_SINCE_NN_RESPONSE"] = x
-        # centered is only used once we know we are facing an unknown object period
-        self.conditions["CENTERED"] = is_centered(scan_data)
-        self.conditions["IN_FRONT_OF_CLOSE_OBJECT"] = front_distance < C.SAFE_DISTANCE
+        # If the bot isn't facing an object, it can't be facing an object that
+        # it's already scanned
+        if not self.conditions["FACING_OBJECT"]:
+            self.conditions["FACING_SCANNED_OBJECT"] = False
+
+        # Check if the object the bot is facing an object using a stricter
+        # angle range
+        self.conditions["CENTERED"] = is_centered(
+            scan_data, C.FRONT_ANGLE_RANGE)
+
+        if (self.current_state == C.ACTION_STATE_MOVE_BLOCK or
+                self.current_state == C.ACTION_STATE_RELEASE):
+            # Check if the bot is close enough to a block to release a dumbbell
+            self.conditions["IN_FRONT_OF_CLOSE_OBJECT"] = front_distance < C.SAFE_DISTANCE_RELEASE
+        else:
+            # Check if the bot is close enough to a dumbbell to pick it up
+            self.conditions["IN_FRONT_OF_CLOSE_OBJECT"] = front_distance < C.SAFE_DISTANCE_GRAB
+
+        # Check if the bot is far enough away from a placed dumbbell to
+        # turn freely and head back to the center
+        self.conditions["HAS_SPACE_IN_FRONT"] = front_distance > C.BACK_AWAY_DISTANCE
 
         self.update_controller_states(self.get_next_state())
 
@@ -143,14 +150,21 @@ class ActionController():
         """
         Receive an image center and check if the robot is facing an object.
         """
-        self.conditions["NN_RESPONSE_RECEIVED"] = True
-        if (img_cen_data.target != C.TARGET_NONE and
-                abs(img_cen_data.center_x) < C.IMG_CEN_PIXEL_THRESHOLD):
-            if (img_cen_data.vision_state == C.VISION_STATE_COLOR_SEARCH or
-                    img_cen_data.vision_state == C.VISION_STATE_NUMBER_SEARCH):
-                self.conditions["FACING_TARGET"] = True
+        # By processing an image, the bot has scanned an object
+        self.conditions["FACING_SCANNED_OBJECT"] = True
+
+        if (img_cen_data.vision_state != C.VISION_STATE_IDLE and
+            img_cen_data.target != C.TARGET_NONE and
+            ((img_cen_data.vision_state == C.VISION_STATE_COLOR_SEARCH and
+              abs(img_cen_data.center_x) < C.IMG_CEN_COLOR_PIXEL_THRESHOLD) or
+                (img_cen_data.vision_state == C.VISION_STATE_NUMBER_SEARCH and
+                 abs(img_cen_data.center_x) < C.IMG_CEN_NUMBER_PIXEL_THRESHOLD))):
+            # If the bot can detect its scan target and the target
+            # is within a certain pixel distance of the center of the bot's FOV
+            self.conditions["FACING_TARGET"] = True
         else:
             self.conditions["FACING_TARGET"] = False
+
         self.update_controller_states(self.get_next_state())
 
     def process_manipulator_action(self, action: ManipulatorAction) -> None:
@@ -158,6 +172,8 @@ class ActionController():
         Receive an action from the Q learning node and execute it.
         """
         if not action.is_confirmation:
+            # The same topic is used to tell the Q learning node if an action
+            # has been completed, so a confirmation flag is necessary
             self.current_robot_action.block_id = action.block_id
             self.current_robot_action.robot_db = action.robot_db
             self.update_controller_states(C.ACTION_STATE_MOVE_CENTER)
@@ -171,6 +187,7 @@ class ActionController():
     def get_next_state(self) -> str:
         """
         Check the current conditions to see if the bot can change state.
+        If so, return the next state.
         """
         if self.current_state == C.ACTION_STATE_MOVE_CENTER:
             if (self.conditions["IN_CENTER"] and
@@ -182,8 +199,8 @@ class ActionController():
                 return C.ACTION_STATE_LOCATE_BLOCK
 
         elif self.current_state == C.ACTION_STATE_LOCATE_DUMBBELL:
-            if self.conditions["FACING_UNKNOWN_OBJECT"] and \
-                    self.conditions["HAS_FACED_NOTHING_SINCE_NN_RESPONSE"]:
+            if (self.conditions["FACING_OBJECT"] and
+                    not self.conditions["FACING_SCANNED_OBJECT"]):
                 if self.conditions["CENTERED"]:
                     return C.ACTION_STATE_WAIT_FOR_COLOR_IMG
                 else:
@@ -194,8 +211,7 @@ class ActionController():
                 return C.ACTION_STATE_WAIT_FOR_COLOR_IMG
 
         elif self.current_state == C.ACTION_STATE_WAIT_FOR_COLOR_IMG:
-            if self.conditions["NN_RESPONSE_RECEIVED"]:
-                self.conditions["NN_RESPONSE_RECEIVED"] = False
+            if self.conditions["FACING_SCANNED_OBJECT"]:
                 if self.conditions["FACING_TARGET"]:
                     return C.ACTION_STATE_MOVE_DUMBBELL
                 else:
@@ -214,8 +230,8 @@ class ActionController():
                 return C.ACTION_STATE_MOVE_CENTER
 
         elif self.current_state == C.ACTION_STATE_LOCATE_BLOCK:
-            if self.conditions["FACING_UNKNOWN_OBJECT"] and \
-                    self.conditions["HAS_FACED_NOTHING_SINCE_NN_RESPONSE"]:
+            if (self.conditions["FACING_OBJECT"] and
+                    not self.conditions["FACING_SCANNED_OBJECT"]):
                 if self.conditions["CENTERED"]:
                     return C.ACTION_STATE_WAIT_FOR_NUMBER_IMG
                 else:
@@ -226,8 +242,7 @@ class ActionController():
                 return C.ACTION_STATE_WAIT_FOR_NUMBER_IMG
 
         elif self.current_state == C.ACTION_STATE_WAIT_FOR_NUMBER_IMG:
-            if self.conditions["NN_RESPONSE_RECEIVED"]:
-                self.conditions["NN_RESPONSE_RECEIVED"] = False
+            if self.conditions["FACING_SCANNED_OBJECT"]:
                 if self.conditions["FACING_TARGET"]:
                     return C.ACTION_STATE_MOVE_BLOCK
                 else:
@@ -243,6 +258,13 @@ class ActionController():
 
         elif self.current_state == C.ACTION_STATE_RELEASE:
             if not self.conditions["HOLDING_DUMBBELL"]:
+                return C.ACTION_STATE_BACK_AWAY
+
+        elif self.current_state == C.ACTION_STATE_BACK_AWAY:
+            if self.conditions["HAS_SPACE_IN_FRONT"]:
+                # If the bot has reached this point, it has finished executing
+                # an action, so it needs to send a confirmation to the
+                # Q learning node to ask for the next action
                 confirmation = self.create_manipulator_action_msg()
                 self.publishers[C.MANIPULATOR_ACTION_TOPIC].publish(
                     confirmation)
@@ -255,6 +277,8 @@ class ActionController():
         Change the robot's current state and broadcast a message to the subnodes.
         """
         self.current_state = new_state
+
+        # Tell the subcontrollers what the robot's new state is
         action_state_msg = self.create_action_state_msg()
         self.publishers[C.ACTION_STATE_TOPIC].publish(action_state_msg)
 

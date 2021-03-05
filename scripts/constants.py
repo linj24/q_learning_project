@@ -35,6 +35,7 @@ ACTION_STATE_LOCATE_BLOCK = "action_state_locate_block"
 ACTION_STATE_WAIT_FOR_NUMBER_IMG = "action_state_wait_for_number_img"
 ACTION_STATE_MOVE_BLOCK = "action_state_move_block"
 ACTION_STATE_RELEASE = "action_state_release"
+ACTION_STATE_BACK_AWAY = "action_state_back_away"
 ACTION_STATE_CENTER_BLOCK = "action_state_center_block"
 ACTION_STATE_CENTER_DUMBBELL = "action_state_center_dumbbell"
 
@@ -52,6 +53,7 @@ MOVEMENT_STATE_FIND_OBJECT = "movement_state_find_object"
 MOVEMENT_STATE_CENTER_OBJECT = "movement_state_center_object"
 MOVEMENT_STATE_FOLLOW_OBJECT = "movement_state_track_object"
 MOVEMENT_STATE_APPROACH_OBJECT = "movement_state_approach_object"
+MOVEMENT_STATE_BACK_AWAY = "movement_state_back_away"
 MOVEMENT_STATE_WAIT_FOR_IMG = "movement_state_wait_for_img"
 
 
@@ -72,7 +74,7 @@ NUMBER_THREE = 3
 ARM_JOINT_NAMES = ['joint1', 'joint2', 'joint3', 'joint4']
 ARM_JOINT_GOAL_DOWN = [0.000, 0.500, 0.500, -1.000]
 ARM_JOINT_GOAL_UP = [0.0000, -1.500, 1.000, -1.000]
-#ARM_JOINT_GOAL_UP = [0.000, -1.800, 1.300, -1.200]
+# ARM_JOINT_GOAL_UP = [0.000, -1.800, 1.300, -1.200]
 GRIPPER_JOINT_NAMES = ['gripper', 'gripper_sub']
 GRIPPER_JOINT_GOAL_OPEN = [0.015, 0.015]
 GRIPPER_JOINT_GOAL_CLOSED = [0.005, 0.005]
@@ -83,22 +85,30 @@ MVMT_THRESH_ANG = 0.6
 
 
 # Proportional coefficient for linear velocity
-KP_LIN = 0.3
+KP_LIN = 0.25
 # Proportional coefficient for angular velocity
-KP_ANG = 0.03
+KP_ANG = 0.5
 # Angular velocity for searching for objects
-SAFE_DISTANCE = 0.18
+SAFE_DISTANCE_GRAB = 0.15
+SAFE_DISTANCE_RELEASE = 0.35
+BACK_AWAY_DISTANCE = 1
 DETECTION_LIMIT = 3.5
+LOCK_ON_RANGE = 24
 FRONT_ANGLE_RANGE = 15
 CENTER_ANGLE_RANGE = 5
-APPROACH_SPEED = 0.01
+APPROACH_SPEED = 0.005
+BACK_AWAY_SPEED = -0.1
 LOCK_ON_MODIFIER_FOLLOW = 0.03
 LOCK_ON_MODIFIER_APPROACH = 0.1
 OBJ_DIST_DIFF = 0.4
-IMG_CEN_PIXEL_THRESHOLD = 20
-SEARCH_TURN_VEL = 0.5
+IMG_CEN_COLOR_PIXEL_THRESHOLD = 60
+IMG_CEN_NUMBER_PIXEL_THRESHOLD = 80
+SEARCH_TURN_VEL = 0.1
+MIN_ANG_VEL = 0.1
 TURN_LEFT = 1
 TURN_RIGHT = -1
+RIGHT_BLOCK_ANGLE_RANGE = range(120, 150)
+LEFT_BLOCK_ANGLE_RANGE = range(210, 240)
 
 LOWER_RED_1 = np.array([0, 50, 50])
 UPPER_RED_1 = np.array([15, 255, 255])

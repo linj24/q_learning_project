@@ -19,9 +19,12 @@ def mask_hue(img, hue):
     """
     Create a mask for an image that only includes values in a certain hue range.
     """
+
+    # Deal with the red mask, which wraps around 180
     hue_lower_bound, hue_upper_bound = wrap_bounds(hue, 180, C.HUE_RANGE)
 
     if hue_lower_bound > hue_upper_bound:
+        # If the color being masked is red, do it in two parts
         lower_bound_1 = np.array([0, C.MIN_SAT, C.MIN_VAL]).astype(int)
         upper_bound_1 = np.array([
             hue_upper_bound, C.MAX_SAT, C.MAX_VAL]).astype(int)
@@ -34,7 +37,9 @@ def mask_hue(img, hue):
         mask2 = cv2.inRange(img, lower_bound_2, upper_bound_2)
 
         return mask1 + mask2
+
     else:
+        # If the color being masked is green or blue, do it in one part
         lower_bound = np.array(
             [hue_lower_bound, C.MIN_SAT, C.MIN_VAL]).astype(int)
         upper_bound = np.array(
@@ -48,6 +53,7 @@ def calc_color_centroid(img, mask):
     """
     Calculate the centroid of a masked image.
     """
+    # Code adapted from class_meeting_03
     height, width, _ = img.shape
     moments = cv2.moments(mask)
 
@@ -59,16 +65,19 @@ def calc_color_centroid(img, mask):
     return None
 
 
-def calc_box_center(box):
+def calc_box_center(img, box):
     """
     Calculate the center of a box from its coordinates.
     """
+    height, width, _ = img.shape
     box_center_x = 0
     box_center_y = 0
-    for box_corner_y, box_corner_x in box:
+    for box_corner_x, box_corner_y in box:
+        # Find the center by taking the average of the x and y components
         box_center_x = box_center_x + box_corner_x
         box_center_y = box_center_y + box_corner_y
-    box_center = (box_center_x / 4, box_center_y / 4)
+    box_center = ((box_center_x/4) - (width//2),
+                  (box_center_y/4) - (height//2))
 
     return box_center
 
@@ -151,6 +160,7 @@ class VisionController():
         center = None
 
         if self.current_state == C.VISION_STATE_COLOR_SEARCH:
+            # If currently searching for a color, calculate a color centroid
             img_cen_msg.target = self.color_search_target
 
             hsv_img = cv2.cvtColor(csv_img, cv2.COLOR_BGR2HSV)
@@ -160,18 +170,23 @@ class VisionController():
             center = calc_color_centroid(hsv_img, mask)
 
         elif self.current_state == C.VISION_STATE_NUMBER_SEARCH:
+            # If currently searching for a number, calculate a box centroid from
+            # keras-ocr recognitions
             img_cen_msg.target = self.number_search_target
 
             prediction_group = self.pipeline.recognize([csv_img])[0]
 
             for word, box in prediction_group:
+                # Check if the target number was one of the predictions
                 stripped = word.strip()
                 if stripped == "l":
+                    # Make sure the neural network doesn't mistake 1 for l
                     stripped = "1"
                 if word.strip() == self.number_search_target:
-                    center = calc_box_center(box)
+                    center = calc_box_center(csv_img, box)
 
         if center is None:
+            # Say that the desired object wasn't detected if it wasn't found
             img_cen_msg.target = C.TARGET_NONE
             img_cen_msg.center_x = 0.0
             img_cen_msg.center_y = 0.0
@@ -189,6 +204,9 @@ class VisionController():
         self.set_number_search_target(str(action_state.block_id))
         new_state = action_state.action_state
 
+        # Process the camera feed when the bot is facing an object and not moving;
+        # if searching for a dumbbell, detect a color
+        # if searching for a block, detect a number
         if new_state == C.ACTION_STATE_IDLE:
             self.set_state(C.VISION_STATE_IDLE)
 
@@ -225,15 +243,22 @@ class VisionController():
         elif new_state == C.ACTION_STATE_RELEASE:
             self.set_state(C.VISION_STATE_IDLE)
 
+        elif new_state == C.ACTION_STATE_BACK_AWAY:
+            self.set_state(C.VISION_STATE_IDLE)
+
     def process_image(self, img):
         """
         Receive an image, calculate an object's location in pixels,
         and notify the action controller.
         """
         if self.current_state != C.VISION_STATE_IDLE:
+            # Process an image if asked to
             csv_img = self.bridge.imgmsg_to_cv2(img, desired_encoding='bgr8')
             img_cen_msg = self.create_img_cen_msg(csv_img)
-            self.publishers[C.IMG_CEN_TOPIC].publish(img_cen_msg)
+            if img_cen_msg.vision_state != C.VISION_STATE_IDLE:
+                # Used in case race conditions arise while the neural network
+                # is processing an image
+                self.publishers[C.IMG_CEN_TOPIC].publish(img_cen_msg)
 
     def run(self):
         """

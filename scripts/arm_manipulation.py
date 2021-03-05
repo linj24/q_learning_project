@@ -60,6 +60,8 @@ class ArmController():
         """
         Move the arm when the controller changes to a new state.
         """
+        # Need to check if the arm isn't already in a given state to avoid
+        # blocking by MoveItCommander
         if state == C.ARM_STATE_UP and self.current_state != C.ARM_STATE_UP:
             self.raise_arm()
             self.close_gripper()
@@ -84,6 +86,8 @@ class ArmController():
                 C.ARM_JOINT_GOAL_UP),
             wait=True)
         self.move_group_arm.stop()
+
+        # Publish a message to tell the action controller if the arm is raised
         arm_raised_flag = ArmRaised()
         arm_raised_flag.arm_raised = True
         self.publishers[C.ARM_RAISED_TOPIC].publish(arm_raised_flag)
@@ -98,6 +102,8 @@ class ArmController():
                 C.ARM_JOINT_GOAL_DOWN),
             wait=True)
         self.move_group_arm.stop()
+
+        # Publish a message to tell the action controller if the arm is lowered
         arm_raised_flag = ArmRaised()
         arm_raised_flag.arm_raised = False
         self.publishers[C.ARM_RAISED_TOPIC].publish(arm_raised_flag)
@@ -130,11 +136,13 @@ class ArmController():
         """
         new_state = action_state.action_state
 
+        # If the bot is searching for a dumbbell, the arm is down;
+        # if the bot is searching for a block, the arm is up
         if new_state == C.ACTION_STATE_IDLE:
             self.set_state(C.ARM_STATE_IDLE)
 
         elif new_state == C.ACTION_STATE_MOVE_CENTER:
-            self.set_state(C.ARM_STATE_UP)
+            pass
 
         elif new_state == C.ACTION_STATE_LOCATE_DUMBBELL:
             self.set_state(C.ARM_STATE_DOWN)
@@ -165,6 +173,9 @@ class ArmController():
 
         elif new_state == C.ACTION_STATE_RELEASE:
             self.set_state(C.ARM_STATE_RELEASING)
+
+        elif new_state == C.ACTION_STATE_BACK_AWAY:
+            self.set_state(C.ARM_STATE_DOWN)
 
     def run(self) -> None:
         """
