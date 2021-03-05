@@ -2,6 +2,10 @@
 
 Enrique Collin and Jason Lin
 
+# Video
+Due to Jason's computer crashing when attemptint to convert the video to a gif, here's a YouTube link:
+https://youtu.be/2dBY-Jgfwpo
+
 # Running the code
 Run the launchfile `launch/turtlebot3_q_learning.launch` to run our algorithm.
 
