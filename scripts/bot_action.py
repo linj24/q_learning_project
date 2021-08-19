@@ -21,7 +21,7 @@ class ActionController():
     """
 
     def __init__(self):
-        rospy.init_node('q_bot_action')
+        rospy.init_node('q_bot_action', log_level=rospy.INFO)
 
         self.current_state = C.ACTION_STATE_IDLE
         self.starting_pose = Pose()
@@ -276,7 +276,11 @@ class ActionController():
         """
         Change the robot's current state and broadcast a message to the subnodes.
         """
+
+        if new_state != self.current_state:
+            rospy.loginfo(f"[Bot Action] Current state is {new_state}")
         self.current_state = new_state
+
 
         # Tell the subcontrollers what the robot's new state is
         action_state_msg = self.create_action_state_msg()

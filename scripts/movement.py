@@ -60,6 +60,8 @@ class MovementController():
         """
         Set the current movement state.
         """
+        if state != self.current_state:
+            rospy.loginfo(f"[Movement] Current state is {state}")
         self.current_state = state
 
     def calculate_velocity_odom(self, odom_data: Odometry) -> Twist:

@@ -11,7 +11,6 @@ import numpy as np
 from sensor_msgs.msg import Image
 import constants as C
 from utils import wrap_bounds
-import keras_ocr
 from q_learning_project.msg import ActionState, ImgCen
 
 
@@ -82,6 +81,7 @@ def calc_box_center(img, box):
     return box_center
 
 
+
 class VisionController():
     """
     Tracks the robot's current state and processes raw images.
@@ -98,7 +98,7 @@ class VisionController():
         self.publishers = self.initialize_publishers()
         self.initialize_subscribers()
 
-        self.pipeline = keras_ocr.pipeline.Pipeline(scale=1)
+        self.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
 
     def initialize_publishers(self):
         """
@@ -126,6 +126,8 @@ class VisionController():
         """
         Set the current vision state.
         """
+        if new_state != self.current_state:
+            rospy.loginfo(f"[Vision] Current state is {new_state}")
         self.current_state = new_state
 
     def set_color_search_target(self, search_target):
@@ -140,17 +142,6 @@ class VisionController():
         """
         self.number_search_target = search_target
 
-    def color_state_to_hue(self):
-        """
-        Convert a color string to an HSV hue.
-        """
-        if self.color_search_target == C.COLOR_RED:
-            return C.RED_HUE
-        elif self.color_search_target == C.COLOR_GREEN:
-            return C.GREEN_HUE
-        elif self.color_search_target == C.COLOR_BLUE:
-            return C.BLUE_HUE
-
     def create_img_cen_msg(self, csv_img):
         """
         Create an ImgCen message from an image based on the current vision state.
@@ -164,7 +155,7 @@ class VisionController():
             img_cen_msg.target = self.color_search_target
 
             hsv_img = cv2.cvtColor(csv_img, cv2.COLOR_BGR2HSV)
-            hue = self.color_state_to_hue()
+            hue = C.COLOR_HUE_MAP[self.color_search_target]
 
             mask = mask_hue(hsv_img, hue)
             center = calc_color_centroid(hsv_img, mask)
@@ -173,17 +164,14 @@ class VisionController():
             # If currently searching for a number, calculate a box centroid from
             # keras-ocr recognitions
             img_cen_msg.target = self.number_search_target
+            
+            gray_img = cv2.cvtColor(csv_img, cv2.COLOR_BGR2GRAY)
+            corners, ids, rejected_points = cv2.aruco.detectMarkers(gray_img, self.aruco_dict)
 
-            prediction_group = self.pipeline.recognize([csv_img])[0]
-
-            for word, box in prediction_group:
-                # Check if the target number was one of the predictions
-                stripped = word.strip()
-                if stripped == "l":
-                    # Make sure the neural network doesn't mistake 1 for l
-                    stripped = "1"
-                if word.strip() == self.number_search_target:
-                    center = calc_box_center(csv_img, box)
+            for i, id in enumerate(ids.flatten()):
+                # Check if the target number was one of the detected tags
+                if id == self.number_search_target:
+                    center = np.sum(corners[i][0], axis=0) // 4
 
         if center is None:
             # Say that the desired object wasn't detected if it wasn't found
@@ -251,14 +239,13 @@ class VisionController():
         Receive an image, calculate an object's location in pixels,
         and notify the action controller.
         """
-        if self.current_state != C.VISION_STATE_IDLE:
-            # Process an image if asked to
-            csv_img = self.bridge.imgmsg_to_cv2(img, desired_encoding='bgr8')
-            img_cen_msg = self.create_img_cen_msg(csv_img)
-            if img_cen_msg.vision_state != C.VISION_STATE_IDLE:
-                # Used in case race conditions arise while the neural network
-                # is processing an image
-                self.publishers[C.IMG_CEN_TOPIC].publish(img_cen_msg)
+        # Process an image if asked to
+        csv_img = self.bridge.imgmsg_to_cv2(img, desired_encoding='bgr8')
+        img_cen_msg = self.create_img_cen_msg(csv_img)
+        if img_cen_msg.vision_state != C.VISION_STATE_IDLE:
+            # Used in case race conditions arise while the neural network
+            # is processing an image
+            self.publishers[C.IMG_CEN_TOPIC].publish(img_cen_msg)
 
     def run(self):
         """

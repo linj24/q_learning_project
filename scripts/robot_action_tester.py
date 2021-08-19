@@ -19,7 +19,7 @@ if __name__ == "__main__":
     action = ManipulatorAction()
     action.is_confirmation = False
     action.robot_db = "red"
-    action.block_id = 2
+    action.block_id = 27
 
     # publisher = rospy.Publisher(
     #     C.ACTION_STATE_TOPIC, ActionState, queue_size=10, latch=True)

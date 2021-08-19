@@ -34,8 +34,12 @@ class ArmController():
             "gripper")
         self.current_state = C.ARM_STATE_IDLE
 
+        self.move_group_arm.set_goal_joint_tolerance(0.1)
+        self.move_group_gripper.set_goal_joint_tolerance(0.01)
+
         self.publishers = self.initialize_publishers()
         self.initialize_subscribers()
+        self.executing = False
 
     def initialize_publishers(self) -> dict:
         """
@@ -74,61 +78,80 @@ class ArmController():
         elif state == C.ARM_STATE_RELEASING and self.current_state != C.ARM_STATE_RELEASING:
             self.lower_arm()
             self.open_gripper()
+
+        if state != self.current_state:
+            rospy.loginfo(f"[Arm] Current state is {state}")
         self.current_state = state
 
     def raise_arm(self) -> None:
         """
         Move the arm to a raised position and notify the action controller.
         """
-        self.move_group_arm.go(
-            joints=create_joint_state_msg(
-                C.ARM_JOINT_NAMES,
-                C.ARM_JOINT_GOAL_UP),
-            wait=True)
-        self.move_group_arm.stop()
+        if not self.executing:
+            self.executing = True
+            self.move_group_arm.go(
+                joints=create_joint_state_msg(
+                    C.ARM_JOINT_NAMES,
+                    C.ARM_JOINT_GOAL_UP),
+                wait=True)
+            rospy.sleep(3)
+            self.move_group_arm.stop()
 
-        # Publish a message to tell the action controller if the arm is raised
-        arm_raised_flag = ArmRaised()
-        arm_raised_flag.arm_raised = True
-        self.publishers[C.ARM_RAISED_TOPIC].publish(arm_raised_flag)
+            # Publish a message to tell the action controller if the arm is raised
+            arm_raised_flag = ArmRaised()
+            arm_raised_flag.arm_raised = True
+            self.publishers[C.ARM_RAISED_TOPIC].publish(arm_raised_flag)
+            self.executing = False
 
     def lower_arm(self) -> None:
         """
         Move the arm to a lowered position and notify the action controller.
         """
-        self.move_group_arm.go(
-            joints=create_joint_state_msg(
-                C.ARM_JOINT_NAMES,
-                C.ARM_JOINT_GOAL_DOWN),
-            wait=True)
-        self.move_group_arm.stop()
+        if not self.executing:
+            self.executing = True
+            self.move_group_arm.go(
+                joints=create_joint_state_msg(
+                    C.ARM_JOINT_NAMES,
+                    C.ARM_JOINT_GOAL_DOWN),
+                wait=True)
+            rospy.sleep(3)
+            self.move_group_arm.stop()
 
-        # Publish a message to tell the action controller if the arm is lowered
-        arm_raised_flag = ArmRaised()
-        arm_raised_flag.arm_raised = False
-        self.publishers[C.ARM_RAISED_TOPIC].publish(arm_raised_flag)
+            # Publish a message to tell the action controller if the arm is lowered
+            arm_raised_flag = ArmRaised()
+            arm_raised_flag.arm_raised = False
+            self.publishers[C.ARM_RAISED_TOPIC].publish(arm_raised_flag)
+            self.executing = False
 
     def close_gripper(self) -> None:
         """
         Close the gripper.
         """
-        self.move_group_gripper.go(
-            joints=create_joint_state_msg(
-                C.GRIPPER_JOINT_NAMES,
-                C.GRIPPER_JOINT_GOAL_CLOSED),
-            wait=True)
-        self.move_group_gripper.stop()
+        if not self.executing:
+            self.executing = True
+            self.move_group_gripper.go(
+                joints=create_joint_state_msg(
+                    C.GRIPPER_JOINT_NAMES,
+                    C.GRIPPER_JOINT_GOAL_CLOSED),
+                wait=True)
+            rospy.sleep(3)
+            self.move_group_gripper.stop()
+            self.executing = False
 
     def open_gripper(self) -> None:
         """
         Open the gripper.
         """
-        self.move_group_gripper.go(
-            joints=create_joint_state_msg(
-                C.GRIPPER_JOINT_NAMES,
-                C.GRIPPER_JOINT_GOAL_OPEN),
-            wait=True)
-        self.move_group_gripper.stop()
+        if not self.executing:
+            self.executing = True
+            self.move_group_gripper.go(
+                joints=create_joint_state_msg(
+                    C.GRIPPER_JOINT_NAMES,
+                    C.GRIPPER_JOINT_GOAL_OPEN),
+                wait=True)
+            rospy.sleep(3)
+            self.move_group_gripper.stop()
+            self.executing = False
 
     def process_action_state(self, action_state):
         """

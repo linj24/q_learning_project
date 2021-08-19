@@ -10,7 +10,7 @@ MANIPULATOR_ACTION_TOPIC = "/q_learning/manipulator_action"
 CMD_VEL_TOPIC = "cmd_vel"
 SCAN_TOPIC = "scan"
 ODOM_TOPIC = "odom"
-IMG_RAW_TOPIC = "camera/rgb/image_raw"
+IMG_RAW_TOPIC = "raspicam_node/image"
 IMG_CEN_TOPIC = "q_learning/img_cen"
 ROBOT_ACTION_TOPIC = "q_learning/robot_action"
 Q_MATRIX_TOPIC = "q_learning/q_matrix"
@@ -119,10 +119,16 @@ RED_HUE = 0
 GREEN_HUE = 60
 BLUE_HUE = 120
 
+COLOR_HUE_MAP = {
+    COLOR_RED: RED_HUE,
+    COLOR_GREEN: GREEN_HUE,
+    COLOR_BLUE: BLUE_HUE
+}
+
 HUE_RANGE = 30
-MIN_SAT = 50
+MIN_SAT = 150
 MAX_SAT = 255
-MIN_VAL = 50
+MIN_VAL = 150
 MAX_VAL = 255
 
 LOWER_GREEN = np.array([45, 50, 50])
