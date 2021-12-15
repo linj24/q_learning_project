@@ -86,8 +86,8 @@
       <elevation>0</elevation>
       <heading_deg>0</heading_deg>
     </spherical_coordinates>
-    <model name='number1'>
-      <pose>-2.4 -2.0 0.4 0 -0 0</pose>
+    <model name='tag1'>
+      <pose>-2.4 -2.0 0.25 0 -0 0</pose>
       <static>0</static>
       <link name='link'>
         <inertial>
@@ -104,21 +104,14 @@
         <visual name='visual'>
           <geometry>
             <mesh>
-              <uri>model://number1/meshes/number.dae</uri>
+              <uri>model://q_learning_project/gazebo_custom_meshes/marker8.dae</uri>
             </mesh>
           </geometry>
-          <material>
-            <script>
-              <uri>model://number1/materials/scripts</uri>
-              <uri>model://number1/materials/textures</uri>
-              <name>Number/One</name>
-            </script>
-          </material>
         </visual>
         <collision name='collision'>
           <geometry>
             <mesh>
-              <uri>model://number1/meshes/number.dae</uri>
+              <uri>model://q_learning_project/gazebo_custom_meshes/marker8.dae</uri>
             </mesh>
           </geometry>
         </collision>
@@ -127,8 +120,8 @@
         <kinematic>0</kinematic>
       </link>
     </model>
-    <model name='number2'>
-      <pose>-2.4 0.0 0.4 0 -0 0</pose>
+    <model name='tag2'>
+      <pose>-2.4 0.0 0.25 0 -0 0</pose>
       <static>0</static>
       <link name='link'>
         <inertial>
@@ -145,21 +138,14 @@
         <visual name='visual'>
           <geometry>
             <mesh>
-              <uri>model://number1/meshes/number.dae</uri>
+              <uri>model://q_learning_project/gazebo_custom_meshes/marker27.dae</uri>
             </mesh>
           </geometry>
-          <material>
-            <script>
-              <uri>model://number2/materials/scripts</uri>
-              <uri>model://number2/materials/textures</uri>
-              <name>Number/Two</name>
-            </script>
-          </material>
         </visual>
         <collision name='collision'>
           <geometry>
             <mesh>
-              <uri>model://number1/meshes/number.dae</uri>
+              <uri>model://q_learning_project/gazebo_custom_meshes/marker27.dae</uri>
             </mesh>
           </geometry>
         </collision>
@@ -168,8 +154,8 @@
         <kinematic>0</kinematic>
       </link>
     </model>
-    <model name='number3'>
-      <pose>-2.4 2.0 0.4 0 -0 0</pose>
+    <model name='tag3'>
+      <pose>-2.4 2.0 0.25 0 -0 0</pose>
       <static>0</static>
       <link name='link'>
         <inertial>
@@ -186,21 +172,14 @@
         <visual name='visual'>
           <geometry>
             <mesh>
-              <uri>model://number1/meshes/number.dae</uri>
+              <uri>model://q_learning_project/gazebo_custom_meshes/marker35.dae</uri>
             </mesh>
           </geometry>
-          <material>
-            <script>
-              <uri>model://number3/materials/scripts</uri>
-              <uri>model://number3/materials/textures</uri>
-              <name>Number/Three</name>
-            </script>
-          </material>
         </visual>
         <collision name='collision'>
           <geometry>
             <mesh>
-              <uri>model://number1/meshes/number.dae</uri>
+              <uri>model://q_learning_project/gazebo_custom_meshes/marker35.dae</uri>
             </mesh>
           </geometry>
         </collision>
@@ -365,31 +344,31 @@
           <wrench>0 0 0 0 -0 0</wrench>
         </link>
       </model>
-      <model name='number1'>
-        <pose>-2.4 -2 0.4 0 -0 0</pose>
+      <model name='tag1'>
+        <pose>-2.4 -2 0.25 0 -0 0</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose>-2.4 -2 0.4 0 -0 0</pose>
+          <pose>-2.4 -2 0.25 0 -0 0</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
         </link>
       </model>
-      <model name='number2'>
-        <pose>-2.4 0 0.4 0 -0 0</pose>
+      <model name='tag2'>
+        <pose>-2.4 0 0.25 0 -0 0</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose>-2.4 0 0.4 0 -0 0</pose>
+          <pose>-2.4 0 0.25 0 -0 0</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
         </link>
       </model>
-      <model name='number3'>
-        <pose>-2.4 2 0.4 0 -0 0</pose>
+      <model name='tag3'>
+        <pose>-2.4 2 0.25 0 -0 0</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose>-2.4 2 0.4 0 -0 0</pose>
+          <pose>-2.4 2 0.25 0 -0 0</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
