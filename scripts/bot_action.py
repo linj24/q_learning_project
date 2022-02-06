@@ -38,16 +38,13 @@ class ActionController():
             "HAS_SPACE_IN_FRONT": False,
             "HOLDING_DUMBBELL": False,
             "FACING_TARGET": False,
-            "FACING_SCANNED_OBJECT": False,
-            "WAITING_FOR_IMG": False,
-            "NN_RESPONSE_RECEIVED": False,
             "CENTERED": False,
         }
 
         self.initialize_publishers()
         self.initialize_subscribers()
 
-    def initialize_publishers(self) -> dict:
+    def initialize_publishers(self) -> None:
         """
         Initialize all the publishers this node will use.
         """
@@ -122,11 +119,6 @@ class ActionController():
 
         self.conditions["FACING_OBJECT"] = not np.isinf(front_distance)
 
-        # If the bot isn't facing an object, it can't be facing an object that
-        # it's already scanned
-        if not self.conditions["FACING_OBJECT"]:
-            self.conditions["FACING_SCANNED_OBJECT"] = False
-
         # Check if the object the bot is facing an object using a stricter
         # angle range
         self.conditions["CENTERED"] = is_centered(
@@ -150,8 +142,6 @@ class ActionController():
         """
         Receive an image center and check if the robot is facing an object.
         """
-        # By processing an image, the bot has scanned an object
-        self.conditions["FACING_SCANNED_OBJECT"] = True
 
         if (img_cen_data.vision_state != C.VISION_STATE_IDLE and
             img_cen_data.target != C.TARGET_NONE and
@@ -200,22 +190,12 @@ class ActionController():
 
         elif self.current_state == C.ACTION_STATE_LOCATE_DUMBBELL:
             if (self.conditions["FACING_OBJECT"] and
-                    not self.conditions["FACING_SCANNED_OBJECT"]):
-                if self.conditions["CENTERED"]:
-                    return C.ACTION_STATE_WAIT_FOR_COLOR_IMG
-                else:
-                    return C.ACTION_STATE_CENTER_DUMBBELL
+                    self.conditions["FACING_TARGET"]):
+                return C.ACTION_STATE_CENTER_DUMBBELL
 
         elif self.current_state == C.ACTION_STATE_CENTER_DUMBBELL:
             if self.conditions["CENTERED"]:
-                return C.ACTION_STATE_WAIT_FOR_COLOR_IMG
-
-        elif self.current_state == C.ACTION_STATE_WAIT_FOR_COLOR_IMG:
-            if self.conditions["FACING_SCANNED_OBJECT"]:
-                if self.conditions["FACING_TARGET"]:
-                    return C.ACTION_STATE_MOVE_DUMBBELL
-                else:
-                    return C.ACTION_STATE_LOCATE_DUMBBELL
+                return C.ACTION_STATE_MOVE_DUMBBELL
 
         elif self.current_state == C.ACTION_STATE_MOVE_DUMBBELL:
             if (self.conditions["IN_FRONT_OF_CLOSE_OBJECT"] and
@@ -231,22 +211,12 @@ class ActionController():
 
         elif self.current_state == C.ACTION_STATE_LOCATE_BLOCK:
             if (self.conditions["FACING_OBJECT"] and
-                    not self.conditions["FACING_SCANNED_OBJECT"]):
-                if self.conditions["CENTERED"]:
-                    return C.ACTION_STATE_WAIT_FOR_NUMBER_IMG
-                else:
-                    return C.ACTION_STATE_CENTER_BLOCK
+                    not self.conditions["FACING_TARGET"]):
+                return C.ACTION_STATE_CENTER_BLOCK
 
         elif self.current_state == C.ACTION_STATE_CENTER_BLOCK:
             if self.conditions["CENTERED"]:
-                return C.ACTION_STATE_WAIT_FOR_NUMBER_IMG
-
-        elif self.current_state == C.ACTION_STATE_WAIT_FOR_NUMBER_IMG:
-            if self.conditions["FACING_SCANNED_OBJECT"]:
-                if self.conditions["FACING_TARGET"]:
-                    return C.ACTION_STATE_MOVE_BLOCK
-                else:
-                    return C.ACTION_STATE_LOCATE_BLOCK
+                return C.ACTION_STATE_MOVE_BLOCK
 
         elif self.current_state == C.ACTION_STATE_MOVE_BLOCK:
             if (self.conditions["IN_FRONT_OF_CLOSE_OBJECT"] and

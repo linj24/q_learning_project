@@ -173,9 +173,6 @@ class ArmController():
         elif new_state == C.ACTION_STATE_CENTER_DUMBBELL:
             self.set_state(C.ARM_STATE_DOWN)
 
-        elif new_state == C.ACTION_STATE_WAIT_FOR_COLOR_IMG:
-            self.set_state(C.ARM_STATE_DOWN)
-
         elif new_state == C.ACTION_STATE_MOVE_DUMBBELL:
             self.set_state(C.ARM_STATE_DOWN)
 
@@ -186,9 +183,6 @@ class ArmController():
             self.set_state(C.ARM_STATE_UP)
 
         elif new_state == C.ACTION_STATE_CENTER_BLOCK:
-            self.set_state(C.ARM_STATE_UP)
-
-        elif new_state == C.ACTION_STATE_WAIT_FOR_NUMBER_IMG:
             self.set_state(C.ARM_STATE_UP)
 
         elif new_state == C.ACTION_STATE_MOVE_BLOCK:

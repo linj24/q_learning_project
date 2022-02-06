@@ -11,8 +11,7 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
 import constants as C
 from utils import (yaw_from_quaternion, find_angle_offset, find_distance,
-                   get_closest_distance_and_angle,
-                   get_block_face_center_distance_and_angle, round_magnitude)
+                   get_closest_distance_and_angle, round_magnitude)
 from q_learning_project.msg import ActionState, ImgCen
 
 
@@ -93,21 +92,10 @@ class MovementController():
         """
         bot_vel = Twist()
 
-        if (int(np.rad2deg(self.current_yaw)) % 360) in C.RIGHT_BLOCK_ANGLE_RANGE:
-            # Check if the bot is facing the right block and apply a
-            # correction to approach its front face
-            distance_to_object, angle_to_object = get_block_face_center_distance_and_angle(
-                scan_data, front_angle_range, C.TURN_RIGHT)
-        elif (int(np.rad2deg(self.current_yaw)) % 360) in C.LEFT_BLOCK_ANGLE_RANGE:
-            # Check if the bot is facing the left block and apply a
-            # correction to approach its front face
-            distance_to_object, angle_to_object = get_block_face_center_distance_and_angle(
-                scan_data, front_angle_range, C.TURN_LEFT)
-        else:
-            # If the bot is facing the middle block or a dumbbell, approach
-            # the part of the object closest to the bot
-            distance_to_object, angle_to_object = get_closest_distance_and_angle(
-                scan_data, front_angle_range)
+        # If the bot is facing the middle block or a dumbbell, approach
+        # the part of the object closest to the bot
+        distance_to_object, angle_to_object = get_closest_distance_and_angle(
+            scan_data, front_angle_range)
 
         if angle_to_object > 180:
             # Make sure all angles are from -pi to pi
@@ -151,9 +139,6 @@ class MovementController():
         elif new_state == C.ACTION_STATE_CENTER_DUMBBELL:
             self.set_state(C.MOVEMENT_STATE_CENTER_OBJECT)
 
-        elif new_state == C.ACTION_STATE_WAIT_FOR_COLOR_IMG:
-            self.set_state(C.MOVEMENT_STATE_WAIT_FOR_IMG)
-
         elif new_state == C.ACTION_STATE_MOVE_DUMBBELL:
             self.set_state(C.MOVEMENT_STATE_FOLLOW_OBJECT)
 
@@ -165,9 +150,6 @@ class MovementController():
 
         elif new_state == C.ACTION_STATE_CENTER_BLOCK:
             self.set_state(C.MOVEMENT_STATE_CENTER_OBJECT)
-
-        elif new_state == C.ACTION_STATE_WAIT_FOR_NUMBER_IMG:
-            self.set_state(C.MOVEMENT_STATE_WAIT_FOR_IMG)
 
         elif new_state == C.ACTION_STATE_MOVE_BLOCK:
             self.set_state(C.MOVEMENT_STATE_FOLLOW_OBJECT)
@@ -223,9 +205,6 @@ class MovementController():
             # in front of it, use proportional control to approach it
             bot_vel = self.calculate_velocity_scan(
                 scan_data, C.LOCK_ON_RANGE, True)
-        elif self.current_state == C.MOVEMENT_STATE_WAIT_FOR_IMG:
-            # If the bot is waiting for an image to be processed, stop moving
-            bot_vel = Twist()
         elif self.current_state == C.MOVEMENT_STATE_APPROACH_OBJECT:
             # If the bot is trying to pick up or release a dumbbell, slowly
             # slowly move forward to make contact

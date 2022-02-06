@@ -168,10 +168,13 @@ class VisionController():
             gray_img = cv2.cvtColor(csv_img, cv2.COLOR_BGR2GRAY)
             corners, ids, rejected_points = cv2.aruco.detectMarkers(gray_img, self.aruco_dict)
 
-            for i, id in enumerate(ids.flatten()):
-                # Check if the target number was one of the detected tags
-                if id == self.number_search_target:
-                    center = np.sum(corners[i][0], axis=0) // 4
+            if ids is None:
+                center = None
+            else:
+                for i, id in enumerate(ids.flatten()):
+                    # Check if the target number was one of the detected tags
+                    if id == self.number_search_target:
+                        center = np.sum(corners[i][0], axis=0) // 4
 
         if center is None:
             # Say that the desired object wasn't detected if it wasn't found
@@ -202,12 +205,9 @@ class VisionController():
             self.set_state(C.VISION_STATE_IDLE)
 
         elif new_state == C.ACTION_STATE_LOCATE_DUMBBELL:
-            self.set_state(C.VISION_STATE_IDLE)
+            self.set_state(C.VISION_STATE_COLOR_SEARCH)
 
         elif new_state == C.ACTION_STATE_CENTER_DUMBBELL:
-            self.set_state(C.VISION_STATE_IDLE)
-
-        elif new_state == C.ACTION_STATE_WAIT_FOR_COLOR_IMG:
             self.set_state(C.VISION_STATE_COLOR_SEARCH)
 
         elif new_state == C.ACTION_STATE_MOVE_DUMBBELL:
@@ -217,12 +217,9 @@ class VisionController():
             self.set_state(C.VISION_STATE_IDLE)
 
         elif new_state == C.ACTION_STATE_LOCATE_BLOCK:
-            self.set_state(C.VISION_STATE_IDLE)
+            self.set_state(C.VISION_STATE_NUMBER_SEARCH)
 
         elif new_state == C.ACTION_STATE_CENTER_BLOCK:
-            self.set_state(C.VISION_STATE_IDLE)
-
-        elif new_state == C.ACTION_STATE_WAIT_FOR_NUMBER_IMG:
             self.set_state(C.VISION_STATE_NUMBER_SEARCH)
 
         elif new_state == C.ACTION_STATE_MOVE_BLOCK:
@@ -243,8 +240,7 @@ class VisionController():
         csv_img = self.bridge.imgmsg_to_cv2(img, desired_encoding='bgr8')
         img_cen_msg = self.create_img_cen_msg(csv_img)
         if img_cen_msg.vision_state != C.VISION_STATE_IDLE:
-            # Used in case race conditions arise while the neural network
-            # is processing an image
+            # Used in case race conditions arise
             self.publishers[C.IMG_CEN_TOPIC].publish(img_cen_msg)
 
     def run(self):

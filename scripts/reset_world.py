@@ -47,9 +47,9 @@ class ResetWorld(object):
 
         # numbered block model names
         self.numbered_block_model_names = {
-            1: "number1",
-            2: "number2",
-            3: "number3"
+            1: "tag1",
+            2: "tag2",
+            3: "tag3"
         }
 
         # reset position and orientations of the numbered blocks

@@ -10,7 +10,7 @@ MANIPULATOR_ACTION_TOPIC = "/q_learning/manipulator_action"
 CMD_VEL_TOPIC = "cmd_vel"
 SCAN_TOPIC = "scan"
 ODOM_TOPIC = "odom"
-IMG_RAW_TOPIC = "raspicam_node/image"
+IMG_RAW_TOPIC = "camera/rgb/image_raw"
 IMG_CEN_TOPIC = "q_learning/img_cen"
 ROBOT_ACTION_TOPIC = "q_learning/robot_action"
 Q_MATRIX_TOPIC = "q_learning/q_matrix"
@@ -28,11 +28,9 @@ CONTROLLER_STATE_LOOP = "controller_state_loop"
 ACTION_STATE_IDLE = "action_state_idle"
 ACTION_STATE_MOVE_CENTER = "action_state_move_center"
 ACTION_STATE_LOCATE_DUMBBELL = "action_state_locate_dumbbell"
-ACTION_STATE_WAIT_FOR_COLOR_IMG = "action_state_wait_for_color_img"
 ACTION_STATE_MOVE_DUMBBELL = "action_state_move_dumbbell"
 ACTION_STATE_GRAB = "action_state_grab"
 ACTION_STATE_LOCATE_BLOCK = "action_state_locate_block"
-ACTION_STATE_WAIT_FOR_NUMBER_IMG = "action_state_wait_for_number_img"
 ACTION_STATE_MOVE_BLOCK = "action_state_move_block"
 ACTION_STATE_RELEASE = "action_state_release"
 ACTION_STATE_BACK_AWAY = "action_state_back_away"
@@ -54,7 +52,6 @@ MOVEMENT_STATE_CENTER_OBJECT = "movement_state_center_object"
 MOVEMENT_STATE_FOLLOW_OBJECT = "movement_state_track_object"
 MOVEMENT_STATE_APPROACH_OBJECT = "movement_state_approach_object"
 MOVEMENT_STATE_BACK_AWAY = "movement_state_back_away"
-MOVEMENT_STATE_WAIT_FOR_IMG = "movement_state_wait_for_img"
 
 
 VISION_STATE_IDLE = "vision_state_idle"
@@ -76,7 +73,7 @@ ARM_JOINT_GOAL_DOWN = [0.000, 0.500, 0.500, -1.000]
 ARM_JOINT_GOAL_UP = [0.0000, -1.500, 1.000, -1.000]
 # ARM_JOINT_GOAL_UP = [0.000, -1.800, 1.300, -1.200]
 GRIPPER_JOINT_NAMES = ['gripper', 'gripper_sub']
-GRIPPER_JOINT_GOAL_OPEN = [0.015, 0.015]
+GRIPPER_JOINT_GOAL_OPEN = [0.03, 0.03]
 GRIPPER_JOINT_GOAL_CLOSED = [0.005, 0.005]
 
 
@@ -94,7 +91,7 @@ SAFE_DISTANCE_RELEASE = 0.35
 BACK_AWAY_DISTANCE = 1
 DETECTION_LIMIT = 3.5
 LOCK_ON_RANGE = 24
-FRONT_ANGLE_RANGE = 15
+FRONT_ANGLE_RANGE = 10
 CENTER_ANGLE_RANGE = 5
 APPROACH_SPEED = 0.005
 BACK_AWAY_SPEED = -0.1
