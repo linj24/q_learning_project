@@ -64,22 +64,13 @@ def calc_color_centroid(img, mask):
     return None
 
 
-def calc_box_center(img, box):
+def calc_tag_center(img, corners):
     """
-    Calculate the center of a box from its coordinates.
+    Calculate the center of a tag from its coordinates.
     """
-    height, width, _ = img.shape
-    box_center_x = 0
-    box_center_y = 0
-    for box_corner_x, box_corner_y in box:
-        # Find the center by taking the average of the x and y components
-        box_center_x = box_center_x + box_corner_x
-        box_center_y = box_center_y + box_corner_y
-    box_center = ((box_center_x/4) - (width//2),
-                  (box_center_y/4) - (height//2))
-
-    return box_center
-
+    height, width = img.shape
+    center = np.sum(corners[0], axis=0) // 4
+    return (center[0] - (width//2), center[1] - (height//2))
 
 
 class VisionController():
@@ -168,13 +159,11 @@ class VisionController():
             gray_img = cv2.cvtColor(csv_img, cv2.COLOR_BGR2GRAY)
             corners, ids, rejected_points = cv2.aruco.detectMarkers(gray_img, self.aruco_dict)
 
-            if ids is None:
-                center = None
-            else:
+            if ids is not None:
                 for i, id in enumerate(ids.flatten()):
                     # Check if the target number was one of the detected tags
-                    if id == self.number_search_target:
-                        center = np.sum(corners[i][0], axis=0) // 4
+                    if str(id) == self.number_search_target:
+                        center = calc_tag_center(gray_img, corners[i])
 
         if center is None:
             # Say that the desired object wasn't detected if it wasn't found
@@ -211,7 +200,7 @@ class VisionController():
             self.set_state(C.VISION_STATE_COLOR_SEARCH)
 
         elif new_state == C.ACTION_STATE_MOVE_DUMBBELL:
-            self.set_state(C.VISION_STATE_IDLE)
+            self.set_state(C.VISION_STATE_COLOR_SEARCH)
 
         elif new_state == C.ACTION_STATE_GRAB:
             self.set_state(C.VISION_STATE_IDLE)
@@ -223,7 +212,7 @@ class VisionController():
             self.set_state(C.VISION_STATE_NUMBER_SEARCH)
 
         elif new_state == C.ACTION_STATE_MOVE_BLOCK:
-            self.set_state(C.VISION_STATE_IDLE)
+            self.set_state(C.VISION_STATE_NUMBER_SEARCH)
 
         elif new_state == C.ACTION_STATE_RELEASE:
             self.set_state(C.VISION_STATE_IDLE)
@@ -239,9 +228,7 @@ class VisionController():
         # Process an image if asked to
         csv_img = self.bridge.imgmsg_to_cv2(img, desired_encoding='bgr8')
         img_cen_msg = self.create_img_cen_msg(csv_img)
-        if img_cen_msg.vision_state != C.VISION_STATE_IDLE:
-            # Used in case race conditions arise
-            self.publishers[C.IMG_CEN_TOPIC].publish(img_cen_msg)
+        self.publishers[C.IMG_CEN_TOPIC].publish(img_cen_msg)
 
     def run(self):
         """

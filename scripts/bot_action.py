@@ -140,17 +140,21 @@ class ActionController():
 
     def process_img_cen(self, img_cen_data: ImgCen) -> None:
         """
-        Receive an image center and check if the robot is facing an object.
+        Receive an image center and check if the robot is facing the object it
+        is searching for.
         """
 
         if (img_cen_data.vision_state != C.VISION_STATE_IDLE and
             img_cen_data.target != C.TARGET_NONE and
             ((img_cen_data.vision_state == C.VISION_STATE_COLOR_SEARCH and
-              abs(img_cen_data.center_x) < C.IMG_CEN_COLOR_PIXEL_THRESHOLD) or
+              abs(img_cen_data.center_x) < C.IMG_CEN_COLOR_PIXEL_THRESHOLD and 
+              img_cen_data.target == self.current_robot_action.robot_db) or
                 (img_cen_data.vision_state == C.VISION_STATE_NUMBER_SEARCH and
-                 abs(img_cen_data.center_x) < C.IMG_CEN_NUMBER_PIXEL_THRESHOLD))):
+                 abs(img_cen_data.center_x) < C.IMG_CEN_NUMBER_PIXEL_THRESHOLD and
+                 img_cen_data.target == str(self.current_robot_action.block_id)))):
             # If the bot can detect its scan target and the target
             # is within a certain pixel distance of the center of the bot's FOV
+            #rospy.loginfo(f"[FACING_TARGET]: {img_cen_data.vision_state}, {img_cen_data.target}")
             self.conditions["FACING_TARGET"] = True
         else:
             self.conditions["FACING_TARGET"] = False
@@ -211,7 +215,7 @@ class ActionController():
 
         elif self.current_state == C.ACTION_STATE_LOCATE_BLOCK:
             if (self.conditions["FACING_OBJECT"] and
-                    not self.conditions["FACING_TARGET"]):
+                    self.conditions["FACING_TARGET"]):
                 return C.ACTION_STATE_CENTER_BLOCK
 
         elif self.current_state == C.ACTION_STATE_CENTER_BLOCK:
@@ -219,12 +223,8 @@ class ActionController():
                 return C.ACTION_STATE_MOVE_BLOCK
 
         elif self.current_state == C.ACTION_STATE_MOVE_BLOCK:
-            if (self.conditions["IN_FRONT_OF_CLOSE_OBJECT"] and
-                    self.conditions["FACING_TARGET"]):
+            if self.conditions["IN_FRONT_OF_CLOSE_OBJECT"]:
                 return C.ACTION_STATE_RELEASE
-
-            if not self.conditions["FACING_TARGET"]:
-                return C.ACTION_STATE_LOCATE_BLOCK
 
         elif self.current_state == C.ACTION_STATE_RELEASE:
             if not self.conditions["HOLDING_DUMBBELL"]:

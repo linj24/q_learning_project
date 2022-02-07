@@ -85,39 +85,40 @@ class MovementController():
     def calculate_velocity_scan(
             self,
             scan_data: LaserScan,
-            front_angle_range: int,
-            include_linear: bool) -> Twist:
+            front_angle_range: int) -> Twist:
         """
         Calculate a linear velocity for the robot from a forward-facing laser scan.
         """
         bot_vel = Twist()
 
-        # If the bot is facing the middle block or a dumbbell, approach
-        # the part of the object closest to the bot
-        distance_to_object, angle_to_object = get_closest_distance_and_angle(
+        # If the bot is facing an object, get the distance to the closest part
+        # of that object
+        distance_to_object, _ = get_closest_distance_and_angle(
             scan_data, front_angle_range)
 
-        if angle_to_object > 180:
-            # Make sure all angles are from -pi to pi
-            angle_to_object = angle_to_object - 360
-
-        angle_to_object = np.deg2rad(angle_to_object)
-
         if np.isinf(distance_to_object):
-            # If the bot doesn't have anything in front of it,
-            # turn in the direction it last detected something
             distance_to_object = 0
-            angle_to_object = C.MIN_ANG_VEL * self.search_direction
 
-        if include_linear:
-            # Include a linear velocity for when the bot is locked on to
-            # an object
-            bot_vel.linear.x = C.KP_LIN * distance_to_object
+        # Scale the bot's linear velocity by how close it is
+        bot_vel.linear.x = C.KP_LIN * distance_to_object
+        bot_vel.angular.z = self.last_twist.angular.z
 
-        # Make sure the bot's angular velocity has a minimum magnitude
-        # so lock-on doesn't take forever
-        bot_vel.angular.z = round_magnitude(
-            C.KP_ANG * angle_to_object, C.MIN_ANG_VEL)
+        return bot_vel
+
+    def calculate_velocity_img_cen(
+            self,
+            img_cen_data: ImgCen) -> Twist:
+        """
+        Calculate an angular velocity for the robot from an image scan.
+        """
+        bot_vel = Twist()
+
+        if img_cen_data.target != C.TARGET_NONE:
+            # If the scan found what the bot was looking for
+            bot_vel.angular.z = -round_magnitude(C.KP_ANG * C.IMG_CEN_ANGLE_MODIFIER * img_cen_data.center_x, C.MIN_ANG_VEL)
+        
+        bot_vel.linear.x = self.last_twist.linear.x
+
         return bot_vel
 
     def process_action_state(self, action_state: ActionState) -> None:
@@ -180,6 +181,7 @@ class MovementController():
                 bot_vel = self.calculate_velocity_odom(
                     odom_data)
                 self.publishers[C.CMD_VEL_TOPIC].publish(bot_vel)
+                self.last_twist = bot_vel
 
     def process_scan(self, scan_data: LaserScan) -> None:
         """
@@ -196,15 +198,13 @@ class MovementController():
             bot_vel = Twist()
             bot_vel.angular.z = C.SEARCH_TURN_VEL * self.search_direction
         elif self.current_state == C.MOVEMENT_STATE_CENTER_OBJECT:
-            # If the bot has found an object and needs to lock on, use
-            # proportional control to center it in front
-            bot_vel = self.calculate_velocity_scan(
-                scan_data, C.FRONT_ANGLE_RANGE, False)
+            # Defer lock-on to the camera
+            pass
         elif self.current_state == C.MOVEMENT_STATE_FOLLOW_OBJECT:
             # If the bot has locked on to an object and needs to move
             # in front of it, use proportional control to approach it
             bot_vel = self.calculate_velocity_scan(
-                scan_data, C.LOCK_ON_RANGE, True)
+                scan_data, C.LOCK_ON_RANGE)
         elif self.current_state == C.MOVEMENT_STATE_APPROACH_OBJECT:
             # If the bot is trying to pick up or release a dumbbell, slowly
             # slowly move forward to make contact
@@ -218,22 +218,21 @@ class MovementController():
 
         if bot_vel is not None:
             self.publishers[C.CMD_VEL_TOPIC].publish(bot_vel)
+            self.last_twist = bot_vel
 
     def process_img_cen(self, img_cen: ImgCen) -> None:
         """
         Receive coordinates for the center of an image and
         calculate a velocity if the robot is tracking an object.
         """
-        if img_cen.target != C.TARGET_NONE:
-            # If the scan found what the bot was looking for
-            if img_cen.center_x < 0:
-                # If the object is to the left of the bot,
-                # search to the left
-                self.search_direction = C.TURN_LEFT
-            else:
-                # If the object is to the right of the bot,
-                # search to the right
-                self.search_direction = C.TURN_RIGHT
+        bot_vel = None
+
+        if self.current_state == C.MOVEMENT_STATE_CENTER_OBJECT or self.current_state == C.MOVEMENT_STATE_FOLLOW_OBJECT:
+            bot_vel = self.calculate_velocity_img_cen(img_cen)
+        
+        if bot_vel is not None:
+            self.publishers[C.CMD_VEL_TOPIC].publish(bot_vel)
+            self.last_twist = bot_vel
 
     def run(self) -> None:
         """
