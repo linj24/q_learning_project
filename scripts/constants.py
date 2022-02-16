@@ -4,13 +4,17 @@
 A list of constants used throughout various modules.
 """
 
-import numpy as np
+# CONSTANTS TO SWAP BETWEEN GAZEBO AND PHYSICAL IMPLEMENTATIONS
+IMG_RAW_TOPIC = "raspicam_node/image"
+RED_HUE = 160
+GREEN_HUE = 35
+BLUE_HUE = 95
+
 
 MANIPULATOR_ACTION_TOPIC = "/q_learning/manipulator_action"
 CMD_VEL_TOPIC = "cmd_vel"
 SCAN_TOPIC = "scan"
 ODOM_TOPIC = "odom"
-IMG_RAW_TOPIC = "camera/rgb/image_raw"
 IMG_CEN_TOPIC = "q_learning/img_cen"
 ROBOT_ACTION_TOPIC = "q_learning/robot_action"
 Q_MATRIX_TOPIC = "q_learning/q_matrix"
@@ -73,8 +77,8 @@ ARM_JOINT_GOAL_DOWN = [0.000, 0.025, 1.000, -1.000]
 ARM_JOINT_GOAL_UP = [0.0000, -1.500, 1.000, -1.000]
 # ARM_JOINT_GOAL_UP = [0.000, -1.800, 1.300, -1.200]
 GRIPPER_JOINT_NAMES = ['gripper', 'gripper_sub']
-GRIPPER_JOINT_GOAL_OPEN = [0.025, 0.025]
-GRIPPER_JOINT_GOAL_CLOSED = [0.005, 0.005]
+GRIPPER_JOINT_GOAL_OPEN = [0.015, 0.015]
+GRIPPER_JOINT_GOAL_CLOSED = [0.002, 0.002]
 
 
 MVMT_THRESH_LIN = 0.2
@@ -84,7 +88,7 @@ MVMT_THRESH_ANG = 0.6
 # Proportional coefficient for linear velocity
 KP_LIN = 0.25
 # Proportional coefficient for angular velocity
-KP_ANG = 0.5
+KP_ANG = 0.3
 # Angular velocity for searching for objects
 SAFE_DISTANCE_GRAB = 0.18
 SAFE_DISTANCE_RELEASE = 0.35
@@ -100,22 +104,15 @@ LOCK_ON_MODIFIER_APPROACH = 0.1
 OBJ_DIST_DIFF = 0.4
 IMG_CEN_COLOR_PIXEL_THRESHOLD = 60
 IMG_CEN_NUMBER_PIXEL_THRESHOLD = 80
+IMG_CEN_CENTERED_THRESHOLD = 10
 IMG_CEN_ANGLE_MODIFIER = 0.001
-SEARCH_TURN_VEL = 0.3
-MIN_ANG_VEL = 0.1
+SEARCH_TURN_VEL = 0.1
+MIN_ANG_VEL = 0.03
 TURN_LEFT = 1
 TURN_RIGHT = -1
 RIGHT_BLOCK_ANGLE_RANGE = range(120, 150)
 LEFT_BLOCK_ANGLE_RANGE = range(210, 240)
-
-LOWER_RED_1 = np.array([0, 50, 50])
-UPPER_RED_1 = np.array([15, 255, 255])
-LOWER_RED_2 = np.array([165, 50, 50])
-UPPER_RED_2 = np.array([180, 255, 255])
-
-RED_HUE = 0
-GREEN_HUE = 60
-BLUE_HUE = 120
+ZERO_DISTANCE = 1e-6
 
 COLOR_HUE_MAP = {
     COLOR_RED: RED_HUE,
@@ -124,13 +121,7 @@ COLOR_HUE_MAP = {
 }
 
 HUE_RANGE = 30
-MIN_SAT = 150
+MIN_SAT = 128
 MAX_SAT = 255
-MIN_VAL = 150
+MIN_VAL = 128
 MAX_VAL = 255
-
-LOWER_GREEN = np.array([45, 50, 50])
-UPPER_GREEN = np.array([75, 255, 255])
-
-LOWER_BLUE = np.array([105, 50, 50])
-UPPER_BLUE = np.array([135, 255, 255])

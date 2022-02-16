@@ -113,16 +113,16 @@ class ActionController():
         """
         # Define the bot to be facing an object if it can detect one within a
         # certain frontal radius
+
+        # Convert all zeros to infs if running on a real TurtleBot
+        ranges = np.copy(scan_data.ranges)
+        ranges[ranges < C.ZERO_DISTANCE] = np.inf
+
         front_distance = min(
-            np.amin(scan_data.ranges[:C.FRONT_ANGLE_RANGE//2]),
-            np.amin(scan_data.ranges[-C.FRONT_ANGLE_RANGE//2:]))
+            np.amin(ranges[:C.FRONT_ANGLE_RANGE//2]),
+            np.amin(ranges[-C.FRONT_ANGLE_RANGE//2:]))
 
         self.conditions["FACING_OBJECT"] = not np.isinf(front_distance)
-
-        # Check if the object the bot is facing an object using a stricter
-        # angle range
-        self.conditions["CENTERED"] = is_centered(
-            scan_data, C.FRONT_ANGLE_RANGE)
 
         if (self.current_state == C.ACTION_STATE_MOVE_BLOCK or
                 self.current_state == C.ACTION_STATE_RELEASE):
@@ -144,20 +144,22 @@ class ActionController():
         is searching for.
         """
 
-        if (img_cen_data.vision_state != C.VISION_STATE_IDLE and
+        # If the bot can detect its scan target and the target
+        # is within a certain pixel distance of the center of the bot's FOV
+        self.conditions["FACING_TARGET"] = (
+            img_cen_data.vision_state != C.VISION_STATE_IDLE and
             img_cen_data.target != C.TARGET_NONE and
             ((img_cen_data.vision_state == C.VISION_STATE_COLOR_SEARCH and
               abs(img_cen_data.center_x) < C.IMG_CEN_COLOR_PIXEL_THRESHOLD and 
               img_cen_data.target == self.current_robot_action.robot_db) or
                 (img_cen_data.vision_state == C.VISION_STATE_NUMBER_SEARCH and
                  abs(img_cen_data.center_x) < C.IMG_CEN_NUMBER_PIXEL_THRESHOLD and
-                 img_cen_data.target == str(self.current_robot_action.block_id)))):
-            # If the bot can detect its scan target and the target
-            # is within a certain pixel distance of the center of the bot's FOV
-            #rospy.loginfo(f"[FACING_TARGET]: {img_cen_data.vision_state}, {img_cen_data.target}")
-            self.conditions["FACING_TARGET"] = True
-        else:
-            self.conditions["FACING_TARGET"] = False
+                 img_cen_data.target == str(self.current_robot_action.block_id))))
+
+        # Check if the object the bot is facing an object using a stricter
+        # pixel range
+        self.conditions["CENTERED"] = (self.conditions["FACING_TARGET"] and
+                                       abs(img_cen_data.center_x) < C.IMG_CEN_CENTERED_THRESHOLD)
 
         self.update_controller_states(self.get_next_state())
 

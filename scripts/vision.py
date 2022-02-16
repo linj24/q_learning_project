@@ -133,7 +133,7 @@ class VisionController():
         """
         self.number_search_target = search_target
 
-    def create_img_cen_msg(self, csv_img):
+    def create_img_cen_msg(self, cv2_img):
         """
         Create an ImgCen message from an image based on the current vision state.
         """
@@ -145,7 +145,7 @@ class VisionController():
             # If currently searching for a color, calculate a color centroid
             img_cen_msg.target = self.color_search_target
 
-            hsv_img = cv2.cvtColor(csv_img, cv2.COLOR_BGR2HSV)
+            hsv_img = cv2.cvtColor(cv2_img, cv2.COLOR_BGR2HSV)
             hue = C.COLOR_HUE_MAP[self.color_search_target]
 
             mask = mask_hue(hsv_img, hue)
@@ -156,7 +156,7 @@ class VisionController():
             # keras-ocr recognitions
             img_cen_msg.target = self.number_search_target
             
-            gray_img = cv2.cvtColor(csv_img, cv2.COLOR_BGR2GRAY)
+            gray_img = cv2.cvtColor(cv2_img, cv2.COLOR_BGR2GRAY)
             corners, ids, rejected_points = cv2.aruco.detectMarkers(gray_img, self.aruco_dict)
 
             if ids is not None:
@@ -226,8 +226,8 @@ class VisionController():
         and notify the action controller.
         """
         # Process an image if asked to
-        csv_img = self.bridge.imgmsg_to_cv2(img, desired_encoding='bgr8')
-        img_cen_msg = self.create_img_cen_msg(csv_img)
+        cv2_img = self.bridge.imgmsg_to_cv2(img, desired_encoding='bgr8')
+        img_cen_msg = self.create_img_cen_msg(cv2_img)
         self.publishers[C.IMG_CEN_TOPIC].publish(img_cen_msg)
 
     def run(self):

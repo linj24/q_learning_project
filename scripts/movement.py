@@ -91,6 +91,9 @@ class MovementController():
         """
         bot_vel = Twist()
 
+        # TODO: Bot velocity is 0.005 in approach state - why?
+        # ANS: "Out of range" results in a distance of 0, not inf
+
         # If the bot is facing an object, get the distance to the closest part
         # of that object
         distance_to_object, _ = get_closest_distance_and_angle(

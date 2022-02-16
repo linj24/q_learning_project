@@ -35,7 +35,6 @@ class ArmController():
         self.current_state = C.ARM_STATE_IDLE
 
         self.move_group_arm.set_goal_joint_tolerance(0.1)
-        self.move_group_gripper.set_goal_joint_tolerance(0.01)
 
         self.publishers = self.initialize_publishers()
         self.initialize_subscribers()
@@ -78,9 +77,10 @@ class ArmController():
         elif state == C.ARM_STATE_RELEASING and self.current_state != C.ARM_STATE_RELEASING:
             self.lower_arm()
             self.open_gripper()
-
+ 
         if state != self.current_state:
             rospy.loginfo(f"[Arm] Current state is {state}")
+        
         self.current_state = state
 
     def raise_arm(self) -> None:
@@ -94,8 +94,9 @@ class ArmController():
                     C.ARM_JOINT_NAMES,
                     C.ARM_JOINT_GOAL_UP),
                 wait=True)
-            rospy.sleep(3)
             self.move_group_arm.stop()
+
+            rospy.sleep(10)
 
             # Publish a message to tell the action controller if the arm is raised
             arm_raised_flag = ArmRaised()
@@ -114,8 +115,9 @@ class ArmController():
                     C.ARM_JOINT_NAMES,
                     C.ARM_JOINT_GOAL_DOWN),
                 wait=True)
-            rospy.sleep(3)
             self.move_group_arm.stop()
+            
+            rospy.sleep(10)
 
             # Publish a message to tell the action controller if the arm is lowered
             arm_raised_flag = ArmRaised()
@@ -134,8 +136,8 @@ class ArmController():
                     C.GRIPPER_JOINT_NAMES,
                     C.GRIPPER_JOINT_GOAL_CLOSED),
                 wait=True)
-            rospy.sleep(3)
             self.move_group_gripper.stop()
+            rospy.sleep(1)
             self.executing = False
 
     def open_gripper(self) -> None:
@@ -149,8 +151,8 @@ class ArmController():
                     C.GRIPPER_JOINT_NAMES,
                     C.GRIPPER_JOINT_GOAL_OPEN),
                 wait=True)
-            rospy.sleep(3)
             self.move_group_gripper.stop()
+            rospy.sleep(1)
             self.executing = False
 
     def process_action_state(self, action_state):

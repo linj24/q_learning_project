@@ -106,7 +106,7 @@ def find_objects_in_scan(scan_data: LaserScan) -> list:
     # A range consists of a starting angle and an end angle
     ranges = []
     for i, range_start in enumerate(range_starts):
-        if not np.isinf(scan_ranges[range_starts[i - 1]]):
+        if not np.isinf(scan_ranges[range_starts[i - 1]]) and scan_ranges[range_starts[i - 1]] > C.ZERO_DISTANCE:
             obj_range = (range_starts[i - 1], range_start)
             ranges.append(obj_range)
     return ranges
@@ -132,6 +132,8 @@ def get_closest_distance_and_angle(scan_data, front_angle_range):
     scan_bounds = wrap_bounds(0, 360, front_angle_range)
     scan_ranges[np.arange(
         scan_bounds[1], scan_bounds[0]).astype(int)] = np.inf
+    # Set all zero distance measurements to infinity (for a physical Turtlebot)
+    scan_ranges[scan_ranges < C.ZERO_DISTANCE] = np.inf
 
     # Get closest angle
     distance_to_object = np.amin(scan_ranges)
@@ -155,12 +157,12 @@ def find_object_angle_range(scan_data, front_angle_range):
 
     for angle in left_angles_to_check:
         # Iterate leftward to detect an edge
-        if not np.isinf(scan_ranges[angle]):
+        if not np.isinf(scan_ranges[angle]) and scan_ranges[angle] > C.ZERO_DISTANCE:
             leftmost_angle = angle % 360
 
     for angle in right_angles_to_check:
         # Iterate rightward to detect an edge
-        if not np.isinf(scan_ranges[angle]):
+        if not np.isinf(scan_ranges[angle]) and scan_ranges[angle] > C.ZERO_DISTANCE:
             rightmost_angle = angle % 360
 
     return (leftmost_angle, rightmost_angle)
@@ -177,7 +179,7 @@ def is_centered(scan_data, front_angle_range):
 
     object_bounds = find_object_angle_range(scan_data, front_angle_range)
 
-    if not np.isinf(scan_data.ranges[0]):
+    if not np.isinf(scan_data.ranges[0]) and scan_data.ranges[0] > C.ZERO_DISTANCE:
         # Check if the bot is directly facing something
         if ((closest_angle != object_bounds[0] and
              closest_angle != object_bounds[1]) or
@@ -191,7 +193,7 @@ def is_centered(scan_data, front_angle_range):
             scan_ranges[np.arange(
                 C.CENTER_ANGLE_RANGE // 2,
                 (360 - (C.CENTER_ANGLE_RANGE // 2))).astype(int)] = 0
-            if np.isinf(np.amax(scan_ranges)):
+            if np.isinf(np.amax(scan_ranges)) or np.amin(scan_ranges) < C.ZERO_DISTANCE:
                 # If object fills the stricter detection limit
                 return False
             else:
