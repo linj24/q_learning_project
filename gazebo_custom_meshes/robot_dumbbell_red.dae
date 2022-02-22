@@ -12,10 +12,10 @@
         <technique sid="standard">
           <lambert>
             <emission>
-              <color sid="emission">0.500000  0.000000 0.000000 1.000000</color>
+              <color sid="emission">0.618000  0.001000 0.372000 1.000000</color>
             </emission>
             <ambient>
-              <color sid="ambient">0.500000  0.000000 0.000000 1.000000</color>
+              <color sid="ambient">0.618000  0.001000 0.372000 1.000000</color>
             </ambient>
             <diffuse>
               <color sid="diffuse">0.750000  0.400000 0.400000 1.000000</color>
