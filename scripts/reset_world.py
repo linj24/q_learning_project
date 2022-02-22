@@ -47,9 +47,9 @@ class ResetWorld(object):
 
         # numbered block model names
         self.numbered_block_model_names = {
-            1: "tag1",
-            2: "tag2",
-            3: "tag3"
+            1: "robot_block_1",
+            2: "robot_block_2",
+            3: "robot_block_3"
         }
 
         # reset position and orientations of the numbered blocks
@@ -113,6 +113,9 @@ class ResetWorld(object):
 
 
     def is_in_front_of_block_id(self, pose, block_id):
+
+        if (self.current_numbered_blocks_locations == None):
+            return False
 
         x = pose.position.x
         y = pose.position.y

@@ -86,7 +86,7 @@
       <elevation>0</elevation>
       <heading_deg>0</heading_deg>
     </spherical_coordinates>
-    <model name='tag1'>
+    <model name='robot_block_1'>
       <pose>-2.4 -2.0 0.25 0 -0 0</pose>
       <static>0</static>
       <link name='link'>
@@ -104,14 +104,14 @@
         <visual name='visual'>
           <geometry>
             <mesh>
-              <uri>model://q_learning_project/gazebo_custom_meshes/marker8.dae</uri>
+              <uri>model://q_learning_project/gazebo_custom_meshes/robot_block_1.dae</uri>
             </mesh>
           </geometry>
         </visual>
         <collision name='collision'>
           <geometry>
             <mesh>
-              <uri>model://q_learning_project/gazebo_custom_meshes/marker8.dae</uri>
+              <uri>model://q_learning_project/gazebo_custom_meshes/robot_block_1.dae</uri>
             </mesh>
           </geometry>
         </collision>
@@ -120,7 +120,7 @@
         <kinematic>0</kinematic>
       </link>
     </model>
-    <model name='tag2'>
+    <model name='robot_block_2'>
       <pose>-2.4 0.0 0.25 0 -0 0</pose>
       <static>0</static>
       <link name='link'>
@@ -138,14 +138,14 @@
         <visual name='visual'>
           <geometry>
             <mesh>
-              <uri>model://q_learning_project/gazebo_custom_meshes/marker27.dae</uri>
+              <uri>model://q_learning_project/gazebo_custom_meshes/robot_block_2.dae</uri>
             </mesh>
           </geometry>
         </visual>
         <collision name='collision'>
           <geometry>
             <mesh>
-              <uri>model://q_learning_project/gazebo_custom_meshes/marker27.dae</uri>
+              <uri>model://q_learning_project/gazebo_custom_meshes/robot_block_2.dae</uri>
             </mesh>
           </geometry>
         </collision>
@@ -154,7 +154,7 @@
         <kinematic>0</kinematic>
       </link>
     </model>
-    <model name='tag3'>
+    <model name='robot_block_3'>
       <pose>-2.4 2.0 0.25 0 -0 0</pose>
       <static>0</static>
       <link name='link'>
@@ -172,14 +172,14 @@
         <visual name='visual'>
           <geometry>
             <mesh>
-              <uri>model://q_learning_project/gazebo_custom_meshes/marker35.dae</uri>
+              <uri>model://q_learning_project/gazebo_custom_meshes/robot_block_3.dae</uri>
             </mesh>
           </geometry>
         </visual>
         <collision name='collision'>
           <geometry>
             <mesh>
-              <uri>model://q_learning_project/gazebo_custom_meshes/marker35.dae</uri>
+              <uri>model://q_learning_project/gazebo_custom_meshes/robot_block_3.dae</uri>
             </mesh>
           </geometry>
         </collision>
@@ -344,7 +344,7 @@
           <wrench>0 0 0 0 -0 0</wrench>
         </link>
       </model>
-      <model name='tag1'>
+      <model name='robot_block_1'>
         <pose>-2.4 -2 0.25 0 -0 0</pose>
         <scale>1 1 1</scale>
         <link name='link'>
@@ -354,7 +354,7 @@
           <wrench>0 0 0 0 -0 0</wrench>
         </link>
       </model>
-      <model name='tag2'>
+      <model name='robot_block_2'>
         <pose>-2.4 0 0.25 0 -0 0</pose>
         <scale>1 1 1</scale>
         <link name='link'>
@@ -364,7 +364,7 @@
           <wrench>0 0 0 0 -0 0</wrench>
         </link>
       </model>
-      <model name='tag3'>
+      <model name='robot_block_3'>
         <pose>-2.4 2 0.25 0 -0 0</pose>
         <scale>1 1 1</scale>
         <link name='link'>

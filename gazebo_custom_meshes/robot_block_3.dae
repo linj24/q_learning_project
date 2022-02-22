@@ -78,23 +78,26 @@
   <library_effects>
     <effect id="Image-effect">
       <profile_COMMON>
-        <newparam sid="marker35_png-surface">
+        <newparam sid="robot_block_3_png-surface">
           <surface type="2D">
-            <init_from>marker35_png</init_from>
+            <init_from>robot_block_3_png</init_from>
           </surface>
         </newparam>
-        <newparam sid="marker35_png-sampler">
+        <newparam sid="robot_block_3_png-sampler">
           <sampler2D>
-            <source>marker35_png-surface</source>
+            <source>robot_block_3_png-surface</source>
           </sampler2D>
         </newparam>
         <technique sid="common">
           <lambert>
             <emission>
-              <color sid="emission">0 0 0 1</color>
+              <color sid="emission">0.6 0.6 0.6 1</color>
             </emission>
+            <ambient>
+              <color sid="ambient">0.6 0.6 0.6 1</color>
+            </ambient>
             <diffuse>
-              <texture texture="marker35_png-sampler" texcoord="UVMap"/>
+              <texture texture="robot_block_3_png-sampler" texcoord="UVMap"/>
             </diffuse>
             <index_of_refraction>
               <float sid="ior">1.45</float>
@@ -108,8 +111,11 @@
         <technique sid="common">
           <lambert>
             <emission>
-              <color sid="emission">0 0 0 1</color>
+              <color sid="emission">0.6 0.6 0.6 1</color>
             </emission>
+            <ambient>
+              <color sid="ambient">0.6 0.6 0.6 1</color>
+            </ambient>
             <diffuse>
               <color sid="diffuse">0.8 0.8 0.8 1</color>
             </diffuse>
@@ -122,7 +128,7 @@
     </effect>
   </library_effects>
   <library_images>
-    <image id="marker35_png" name="marker35_png">
+    <image id="robot_block_3_png" name="robot_block_3_png">
       <init_from>marker35.png</init_from>
     </image>
   </library_images>
