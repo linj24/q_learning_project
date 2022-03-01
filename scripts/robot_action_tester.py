@@ -18,18 +18,9 @@ if __name__ == "__main__":
 
     action = ManipulatorAction()
     action.is_confirmation = False
-    action.robot_db = "red"
-    action.block_id = 27
+    action.robot_db = "green"
+    action.block_id = 2
 
-    # publisher = rospy.Publisher(
-    #     C.ACTION_STATE_TOPIC, ActionState, queue_size=10, latch=True)
-
-    # rospy.sleep(1)
-
-    # action = ActionState()
-    # action.action_state = C.ACTION_STATE_MOVE_CENTER
-    # action.robot_db = "red"
-    # action.block_id = 1
 
     publisher.publish(action)
     print("Published")

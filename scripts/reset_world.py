@@ -47,16 +47,16 @@ class ResetWorld(object):
 
         # numbered block model names
         self.numbered_block_model_names = {
-            1: "robot_block_1",
-            2: "robot_block_2",
-            3: "robot_block_3"
+            1: "robot_tag_1",
+            2: "robot_tag_2",
+            3: "robot_tag_3"
         }
 
         # reset position and orientations of the numbered blocks
         self.reset_numbered_blocks_positions = [
-            Point(x=-2.4, y=-2.0, z=0.1),
-            Point(x=-2.4, y=0.0, z=0.1),
-            Point(x=-2.4, y=2.0, z=0.1)
+            Point(x=-1.5, y=-1.0, z=0.1),
+            Point(x=-1.5, y=0.0, z=0.1),
+            Point(x=-1.5, y=1.0, z=0.1)
         ]
         self.reset_quat_orientation_of_numbered_blocks = Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)
 

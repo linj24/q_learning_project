@@ -129,7 +129,7 @@
   </library_effects>
   <library_images>
     <image id="robot_tag_1_png" name="robot_tag_1_png">
-      <init_from>marker8.png</init_from>
+      <init_from>marker1.png</init_from>
     </image>
   </library_images>
   <library_materials>

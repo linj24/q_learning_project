@@ -34,8 +34,6 @@ class ArmController():
             "gripper")
         self.current_state = C.ARM_STATE_IDLE
 
-        self.move_group_arm.set_goal_joint_tolerance(0.1)
-
         self.publishers = self.initialize_publishers()
         self.initialize_subscribers()
         self.executing = False

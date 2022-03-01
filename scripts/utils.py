@@ -91,27 +91,6 @@ def wrap_bounds(
     return (lower_bound, upper_bound)
 
 
-def find_objects_in_scan(scan_data: LaserScan) -> list:
-    """
-    Find the relative angles of distinct objects the bot can detect with a laser scan.
-    """
-    scan_ranges = scan_data.ranges
-    range_starts = []
-    for angle, dist in enumerate(scan_ranges):
-        # Check the scan range for sharp changes in value to
-        # differentiate objects
-        if (scan_ranges[angle - 1] - dist) > C.OBJ_DIST_DIFF:
-            range_starts.append(angle)
-
-    # A range consists of a starting angle and an end angle
-    ranges = []
-    for i, range_start in enumerate(range_starts):
-        if not np.isinf(scan_ranges[range_starts[i - 1]]) and scan_ranges[range_starts[i - 1]] > C.ZERO_DISTANCE:
-            obj_range = (range_starts[i - 1], range_start)
-            ranges.append(obj_range)
-    return ranges
-
-
 def compute_360_center(start: int, end: int) -> int:
     """
     Compute the center of two angles in degrees.
@@ -139,66 +118,6 @@ def get_closest_distance_and_angle(scan_data, front_angle_range):
     distance_to_object = np.amin(scan_ranges)
     angle_to_object = np.argmin(scan_ranges)
     return (distance_to_object, angle_to_object)
-
-
-def find_object_angle_range(scan_data, front_angle_range):
-    _, closest_angle = get_closest_distance_and_angle(
-        scan_data, front_angle_range)
-    """
-    Compute a range of angles that intersect a given object.
-    """
-    scan_ranges = np.array(scan_data.ranges)
-
-    left_angles_to_check = range(closest_angle, front_angle_range)
-    right_angles_to_check = range(closest_angle, -front_angle_range, -1)
-
-    leftmost_angle = closest_angle
-    rightmost_angle = closest_angle
-
-    for angle in left_angles_to_check:
-        # Iterate leftward to detect an edge
-        if not np.isinf(scan_ranges[angle]) and scan_ranges[angle] > C.ZERO_DISTANCE:
-            leftmost_angle = angle % 360
-
-    for angle in right_angles_to_check:
-        # Iterate rightward to detect an edge
-        if not np.isinf(scan_ranges[angle]) and scan_ranges[angle] > C.ZERO_DISTANCE:
-            rightmost_angle = angle % 360
-
-    return (leftmost_angle, rightmost_angle)
-
-
-def is_centered(scan_data, front_angle_range):
-    """
-    Considering only angles that are in front of the robot (in C.FRONT_ANGLE_RANGE)
-    returns True if the closest object is almost directly in front of the object
-    (within C.CENTER_ANGLE_RANGE of straight ahead of the robot). False otherwise.
-    """
-    _, closest_angle = get_closest_distance_and_angle(
-        scan_data, front_angle_range)
-
-    object_bounds = find_object_angle_range(scan_data, front_angle_range)
-
-    if not np.isinf(scan_data.ranges[0]) and scan_data.ranges[0] > C.ZERO_DISTANCE:
-        # Check if the bot is directly facing something
-        if ((closest_angle != object_bounds[0] and
-             closest_angle != object_bounds[1]) or
-                object_bounds[0] == object_bounds[1]):
-            # Check if it is facing an object that falls entirely within the
-            # detection limit
-            return True
-        else:
-            # If the object is too large for the detection limit
-            scan_ranges = np.array(scan_data.ranges)
-            scan_ranges[np.arange(
-                C.CENTER_ANGLE_RANGE // 2,
-                (360 - (C.CENTER_ANGLE_RANGE // 2))).astype(int)] = 0
-            if np.isinf(np.amax(scan_ranges)) or np.amin(scan_ranges) < C.ZERO_DISTANCE:
-                # If object fills the stricter detection limit
-                return False
-            else:
-                return True
-    return False
 
 
 def round_magnitude(number_to_round, magnitude):

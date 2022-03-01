@@ -6,7 +6,7 @@ Controller object updating the robot state based on sensor readings.
 
 import constants as C
 import numpy as np
-from utils import find_distance, is_centered
+from utils import find_distance
 import rospy
 from geometry_msgs.msg import Pose
 from nav_msgs.msg import Odometry
@@ -118,9 +118,9 @@ class ActionController():
         ranges = np.copy(scan_data.ranges)
         ranges[ranges < C.ZERO_DISTANCE] = np.inf
 
-        front_distance = min(
-            np.amin(ranges[:C.FRONT_ANGLE_RANGE//2]),
-            np.amin(ranges[-C.FRONT_ANGLE_RANGE//2:]))
+        front_ranges_left = ranges[:C.FRONT_ANGLE_RANGE//2]
+        front_ranges_right = ranges[-C.FRONT_ANGLE_RANGE//2:]
+        front_distance = np.median(np.concatenate((front_ranges_left[front_ranges_left < np.inf], front_ranges_right[front_ranges_right < np.inf]), axis=None))
 
         self.conditions["FACING_OBJECT"] = not np.isinf(front_distance)
 
