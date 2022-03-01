@@ -54,9 +54,9 @@ class ResetWorld(object):
 
         # reset position and orientations of the numbered blocks
         self.reset_numbered_blocks_positions = [
-            Point(x=-2.4, y=-2.0, z=0.4),
-            Point(x=-2.4, y=0.0, z=0.4),
-            Point(x=-2.4, y=2.0, z=0.4)
+            Point(x=-2.4, y=-2.0, z=0.1),
+            Point(x=-2.4, y=0.0, z=0.1),
+            Point(x=-2.4, y=2.0, z=0.1)
         ]
         self.reset_quat_orientation_of_numbered_blocks = Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)
 
@@ -120,15 +120,15 @@ class ResetWorld(object):
         x = pose.position.x
         y = pose.position.y
 
-        x_delta_range = 0.5
+        x_delta_range = 0.25
 
-        y_delta_range = 0.4
+        y_delta_range = 0.2
 
         if (block_id not in self.current_numbered_blocks_locations):
             print("is_in_front_of_1_block(): invalid block_id")
             return False
 
-        x_min = self.current_numbered_blocks_locations[block_id].x + 0.4
+        x_min = self.current_numbered_blocks_locations[block_id].x + 0.1
         x_max = x_min + x_delta_range
         y_min = self.current_numbered_blocks_locations[block_id].y - y_delta_range
         y_max = self.current_numbered_blocks_locations[block_id].y + y_delta_range

@@ -86,8 +86,8 @@
       <elevation>0</elevation>
       <heading_deg>0</heading_deg>
     </spherical_coordinates>
-    <model name='robot_block_1'>
-      <pose>-2.4 -2.0 0.25 0 -0 0</pose>
+    <model name='robot_tag_1'>
+      <pose>-1.5 -1.0 0.1 0 -0 0</pose>
       <static>0</static>
       <link name='link'>
         <inertial>
@@ -104,14 +104,14 @@
         <visual name='visual'>
           <geometry>
             <mesh>
-              <uri>model://q_learning_project/gazebo_custom_meshes/robot_block_1.dae</uri>
+              <uri>model://q_learning_project/gazebo_custom_meshes/robot_tag_1.dae</uri>
             </mesh>
           </geometry>
         </visual>
         <collision name='collision'>
           <geometry>
             <mesh>
-              <uri>model://q_learning_project/gazebo_custom_meshes/robot_block_1.dae</uri>
+              <uri>model://q_learning_project/gazebo_custom_meshes/robot_tag_1.dae</uri>
             </mesh>
           </geometry>
         </collision>
@@ -120,8 +120,8 @@
         <kinematic>0</kinematic>
       </link>
     </model>
-    <model name='robot_block_2'>
-      <pose>-2.4 0.0 0.25 0 -0 0</pose>
+    <model name='robot_tag_2'>
+      <pose>-1.5 0.0 0.1 0 -0 0</pose>
       <static>0</static>
       <link name='link'>
         <inertial>
@@ -138,14 +138,14 @@
         <visual name='visual'>
           <geometry>
             <mesh>
-              <uri>model://q_learning_project/gazebo_custom_meshes/robot_block_2.dae</uri>
+              <uri>model://q_learning_project/gazebo_custom_meshes/robot_tag_2.dae</uri>
             </mesh>
           </geometry>
         </visual>
         <collision name='collision'>
           <geometry>
             <mesh>
-              <uri>model://q_learning_project/gazebo_custom_meshes/robot_block_2.dae</uri>
+              <uri>model://q_learning_project/gazebo_custom_meshes/robot_tag_2.dae</uri>
             </mesh>
           </geometry>
         </collision>
@@ -154,8 +154,8 @@
         <kinematic>0</kinematic>
       </link>
     </model>
-    <model name='robot_block_3'>
-      <pose>-2.4 2.0 0.25 0 -0 0</pose>
+    <model name='robot_tag_3'>
+      <pose>-1.5 1.0 0.1 0 -0 0</pose>
       <static>0</static>
       <link name='link'>
         <inertial>
@@ -172,14 +172,14 @@
         <visual name='visual'>
           <geometry>
             <mesh>
-              <uri>model://q_learning_project/gazebo_custom_meshes/robot_block_3.dae</uri>
+              <uri>model://q_learning_project/gazebo_custom_meshes/robot_tag_3.dae</uri>
             </mesh>
           </geometry>
         </visual>
         <collision name='collision'>
           <geometry>
             <mesh>
-              <uri>model://q_learning_project/gazebo_custom_meshes/robot_block_3.dae</uri>
+              <uri>model://q_learning_project/gazebo_custom_meshes/robot_tag_3.dae</uri>
             </mesh>
           </geometry>
         </collision>
@@ -344,31 +344,31 @@
           <wrench>0 0 0 0 -0 0</wrench>
         </link>
       </model>
-      <model name='robot_block_1'>
-        <pose>-2.4 -2 0.25 0 -0 0</pose>
+      <model name='robot_tag_1'>
+        <pose>-1.5 -1 0.1 0 -0 0</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose>-2.4 -2 0.25 0 -0 0</pose>
+          <pose>-1.5 -1 0.1 0 -0 0</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
         </link>
       </model>
-      <model name='robot_block_2'>
-        <pose>-2.4 0 0.25 0 -0 0</pose>
+      <model name='robot_tag_2'>
+        <pose>-1.5 0 0.1 0 -0 0</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose>-2.4 0 0.25 0 -0 0</pose>
+          <pose>-1.5 0 0.1 0 -0 0</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
         </link>
       </model>
-      <model name='robot_block_3'>
-        <pose>-2.4 2 0.25 0 -0 0</pose>
+      <model name='robot_tag_3'>
+        <pose>-1.5 1 0.1 0 -0 0</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose>-2.4 2 0.25 0 -0 0</pose>
+          <pose>-1.5 1 0.1 0 -0 0</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
