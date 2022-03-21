@@ -18,8 +18,8 @@ if __name__ == "__main__":
 
     action = ManipulatorAction()
     action.is_confirmation = False
-    action.robot_db = "green"
-    action.block_id = 2
+    action.robot_db = "blue"
+    action.block_id = 1
 
 
     publisher.publish(action)

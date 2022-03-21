@@ -5,6 +5,8 @@ A list of constants used throughout various modules.
 """
 
 # CONSTANTS TO SWAP BETWEEN GAZEBO AND PHYSICAL IMPLEMENTATIONS
+ARM_SLEEP_DURATION = 0
+GRIPPER_SLEEP_DURATION = 0
 IMG_RAW_TOPIC = "camera/rgb/image_raw"
 
 

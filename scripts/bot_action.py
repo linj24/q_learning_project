@@ -11,7 +11,7 @@ import rospy
 from geometry_msgs.msg import Pose
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
-from q_learning_project.msg import (RobotMoveDBToBlock, ActionState, ImgCen,
+from q_learning_project.msg import (RobotMoveDBToTag, ActionState, ImgCen,
                                     ArmRaised, ManipulatorAction)
 
 
@@ -25,7 +25,7 @@ class ActionController():
 
         self.current_state = C.ACTION_STATE_IDLE
         self.starting_pose = Pose()
-        self.current_robot_action = RobotMoveDBToBlock()
+        self.current_robot_action = RobotMoveDBToTag()
         self.current_yaw = 0
         self.initialized = False
 

@@ -5,7 +5,7 @@ import rospy
 from gazebo_msgs.msg import ModelState, ModelStates
 from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3
 from std_msgs.msg import Header
-from q_learning_project.msg import RobotMoveDBToBlock
+from q_learning_project.msg import RobotMoveDBToTag
 from q_learning_project.msg import QLearningReward
 from q_learning_project.msg import QMatrixRow
 from q_learning_project.msg import QMatrix
@@ -41,7 +41,7 @@ class QLearn():
 
         # Setup publisher for changes to QMatrix and when we want to send an action
         self.qmat_pub = rospy.Publisher("q_learning/q_matrix", QMatrix, queue_size=10)
-        self.action_pub = rospy.Publisher("q_learning/robot_action", RobotMoveDBToBlock, queue_size=10)
+        self.action_pub = rospy.Publisher("q_learning/robot_action", RobotMoveDBToTag, queue_size=10)
         # Setup subcriber for rewards
         rospy.Subscriber("/q_learning/reward", QLearningReward, self.reward_received)
 
@@ -234,7 +234,7 @@ class QLearn():
                 curr_state = 0
                 continue
             (db, block) = self.action_to_desc(action)
-            action_obj = RobotMoveDBToBlock(db, block)
+            action_obj = RobotMoveDBToTag(db, block)
             self.action_pub.publish(action_obj)
             # Sleep to let action process
             rospy.sleep(1.0)

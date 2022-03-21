@@ -5,7 +5,7 @@ Controller object handling all arm functions based on the robot state.
 """
 
 import rospy
-import moveit_commander
+from moveit_commander import MoveGroupCommander
 from sensor_msgs.msg import JointState
 import constants as C
 from q_learning_project.msg import ActionState, ArmRaised
@@ -29,9 +29,8 @@ class ArmController():
     def __init__(self):
         rospy.init_node('q_arm')
 
-        self.move_group_arm = moveit_commander.MoveGroupCommander("arm")
-        self.move_group_gripper = moveit_commander.MoveGroupCommander(
-            "gripper")
+        self.move_group_arm = MoveGroupCommander("arm")
+        self.move_group_gripper = MoveGroupCommander("gripper")
         self.current_state = C.ARM_STATE_IDLE
 
         self.publishers = self.initialize_publishers()
@@ -94,7 +93,7 @@ class ArmController():
                 wait=True)
             self.move_group_arm.stop()
 
-            rospy.sleep(10)
+            rospy.sleep(C.ARM_SLEEP_DURATION)
 
             # Publish a message to tell the action controller if the arm is raised
             arm_raised_flag = ArmRaised()
@@ -115,7 +114,7 @@ class ArmController():
                 wait=True)
             self.move_group_arm.stop()
             
-            rospy.sleep(10)
+            rospy.sleep(C.ARM_SLEEP_DURATION)
 
             # Publish a message to tell the action controller if the arm is lowered
             arm_raised_flag = ArmRaised()
@@ -135,7 +134,7 @@ class ArmController():
                     C.GRIPPER_JOINT_GOAL_CLOSED),
                 wait=True)
             self.move_group_gripper.stop()
-            rospy.sleep(1)
+            rospy.sleep(C.GRIPPER_SLEEP_DURATION)
             self.executing = False
 
     def open_gripper(self) -> None:
@@ -150,7 +149,7 @@ class ArmController():
                     C.GRIPPER_JOINT_GOAL_OPEN),
                 wait=True)
             self.move_group_gripper.stop()
-            rospy.sleep(1)
+            rospy.sleep(C.GRIPPER_SLEEP_DURATION)
             self.executing = False
 
     def process_action_state(self, action_state):

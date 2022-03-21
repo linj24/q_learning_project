@@ -57,7 +57,7 @@ add_message_files(
     QLearningReward.msg
     QMatrix.msg
     QMatrixRow.msg
-    RobotMoveDBToBlock.msg
+    RobotMoveDBToTag.msg
 )
 
 ## Generate services in the 'srv' folder

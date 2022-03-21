@@ -9,7 +9,7 @@ from q_learning_project.msg import QLearningReward
 from std_msgs.msg import Header
 
 from random import shuffle
-from tf.transformations import quaternion_from_euler, euler_from_quaternion
+from tf.transformations import quaternion_from_euler
 
 
 class ResetWorld(object):
