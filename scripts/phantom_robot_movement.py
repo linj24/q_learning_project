@@ -4,12 +4,11 @@ import rospy
 
 from gazebo_msgs.msg import ModelState, ModelStates
 from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3
-from q_learning_project.msg import RobotMoveDBToBlock
+from q_learning_project.msg import RobotMoveDBToTag
 
 import time
 
-from tf.transformations import quaternion_from_euler, euler_from_quaternion
-
+from tf.transformations import quaternion_from_euler
 
 class RobotAction(object):
 
@@ -31,7 +30,7 @@ class PhantomRobotMovement(object):
         rospy.init_node('turtlebot3_phantom_movement')
 
         # ROS subscribe to the topic publishing actions for the robot to take
-        rospy.Subscriber("/q_learning/robot_action", RobotMoveDBToBlock, self.prepare_to_take_robot_action)
+        rospy.Subscriber("/q_learning/robot_action", RobotMoveDBToTag, self.prepare_to_take_robot_action)
 
         # ROS subscribe to the Gazebo topic publishing the locations of the models
         rospy.Subscriber("/gazebo/model_states", ModelStates, self.model_states_received)
