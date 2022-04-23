@@ -75,7 +75,7 @@ class ActionController():
         action_state = ActionState()
         action_state.action_state = self.current_state
         action_state.robot_db = self.current_robot_action.robot_db
-        action_state.block_id = self.current_robot_action.block_id
+        action_state.tag_id = self.current_robot_action.tag_id
         return action_state
 
     def create_manipulator_action_msg(self) -> ManipulatorAction:
@@ -84,7 +84,7 @@ class ActionController():
         """
         confirmation = ManipulatorAction()
         confirmation.is_confirmation = True
-        confirmation.block_id = self.current_robot_action.block_id
+        confirmation.tag_id = self.current_robot_action.tag_id
         confirmation.robot_db = self.current_robot_action.robot_db
         return confirmation
 
@@ -154,7 +154,7 @@ class ActionController():
               img_cen_data.target == self.current_robot_action.robot_db) or
                 (img_cen_data.vision_state == C.VISION_STATE_NUMBER_SEARCH and
                  abs(img_cen_data.center_x) < C.IMG_CEN_NUMBER_PIXEL_THRESHOLD and
-                 img_cen_data.target == str(self.current_robot_action.block_id))))
+                 img_cen_data.target == str(self.current_robot_action.tag_id))))
 
         # Check if the object the bot is facing an object using a stricter
         # pixel range
@@ -170,7 +170,7 @@ class ActionController():
         if not action.is_confirmation:
             # The same topic is used to tell the Q learning node if an action
             # has been completed, so a confirmation flag is necessary
-            self.current_robot_action.block_id = action.block_id
+            self.current_robot_action.tag_id = action.tag_id
             self.current_robot_action.robot_db = action.robot_db
             self.update_controller_states(C.ACTION_STATE_MOVE_CENTER)
 

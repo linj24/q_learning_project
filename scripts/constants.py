@@ -9,6 +9,8 @@ ARM_SLEEP_DURATION = 0
 GRIPPER_SLEEP_DURATION = 0
 IMG_RAW_TOPIC = "camera/rgb/image_raw"
 
+Q_SLEEP_DURATION = 0.01
+Q_MATRIX_FILE_PATH = "/q_matrix/q_matrix.txt"
 
 MANIPULATOR_ACTION_TOPIC = "/q_learning/manipulator_action"
 CMD_VEL_TOPIC = "cmd_vel"

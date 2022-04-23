@@ -1,2 +1,2 @@
 string robot_db
-int16 block_id
+int16 tag_id

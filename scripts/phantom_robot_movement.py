@@ -42,15 +42,15 @@ class PhantomRobotMovement(object):
         self.robot_action_queue = []
 
         # numbered block model names
-        self.numbered_block_model_names = {
-            1: "number1",
-            2: "number2",
-            3: "number3"
+        self.tagged_block_model_names = {
+            1: "robot_tag_1",
+            2: "robot_tag_2",
+            3: "robot_tag_3"
         }
 
         # numbered block locations + dimensions
-        self.current_numbered_block_locations = {}
-        self.numbered_block_side_length = 0.8
+        self.current_tagged_block_locations = {}
+        self.tagged_block_side_length = 0.8
 
         # db model names
         self.db_model_names = {
@@ -78,9 +78,9 @@ class PhantomRobotMovement(object):
             robot_action_to_take = self.robot_action_queue[0]
 
             pt = Point(
-                x=(self.current_numbered_block_locations[robot_action_to_take.goal_block_num].x + 0.6),
-                y=self.current_numbered_block_locations[robot_action_to_take.goal_block_num].y,
-                z=self.current_numbered_block_locations[robot_action_to_take.goal_block_num].z
+                x=(self.current_tagged_block_locations[robot_action_to_take.goal_block_num].x + 0.6),
+                y=self.current_tagged_block_locations[robot_action_to_take.goal_block_num].y,
+                z=self.current_tagged_block_locations[robot_action_to_take.goal_block_num].z
             )
 
             print(robot_action_to_take)
@@ -105,9 +105,9 @@ class PhantomRobotMovement(object):
         if (len(self.robot_action_queue) > 0):
 
             # get the numbered block locations
-            for block_id in self.numbered_block_model_names:
-                block_idx = data.name.index(self.numbered_block_model_names[block_id])
-                self.current_numbered_block_locations[block_id] = data.pose[block_idx].position
+            for tag_id in self.tagged_block_model_names:
+                tag_idx = data.name.index(self.tagged_block_model_names[tag_id])
+                self.current_tagged_block_locations[tag_id] = data.pose[tag_idx].position
 
             # get the db locations
             for robot_db in self.db_model_names:
@@ -120,7 +120,7 @@ class PhantomRobotMovement(object):
 
     def prepare_to_take_robot_action(self, data):
         # print(data)
-        self.robot_action_queue.append(RobotAction(data.robot_db, data.block_id))
+        self.robot_action_queue.append(RobotAction(data.robot_db, data.tag_id))
 
 
     def run(self):

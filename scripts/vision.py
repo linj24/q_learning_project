@@ -181,7 +181,7 @@ class VisionController():
         Receive an action state and update the vision state accordingly.
         """
         self.set_color_search_target(action_state.robot_db)
-        self.set_number_search_target(str(action_state.block_id))
+        self.set_number_search_target(str(action_state.tag_id))
         new_state = action_state.action_state
 
         # Process the camera feed when the bot is facing an object and not moving;
