@@ -78,7 +78,7 @@ class PhantomRobotMovement(object):
             robot_action_to_take = self.robot_action_queue[0]
 
             pt = Point(
-                x=(self.current_tagged_block_locations[robot_action_to_take.goal_block_num].x + 0.6),
+                x=(self.current_tagged_block_locations[robot_action_to_take.goal_block_num].x + 0.3),
                 y=self.current_tagged_block_locations[robot_action_to_take.goal_block_num].y,
                 z=self.current_tagged_block_locations[robot_action_to_take.goal_block_num].z
             )
